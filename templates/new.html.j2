@@ -1,0 +1,26 @@
+{% extends 'base.html.j2' %}
+{% block content %}
+<section class="anime" id="anime">
+    <h1 class="heading">New Releases</h1>
+    <div class="swiper anime-slider">
+        <div class="swiper-wrapper">
+            {% for item in data %}
+            <div class="swiper-slide">
+                <div class="box" style="background: url(/img{{ item.cover }}) no-repeat;">
+                </div>
+                <div class="content">
+                    <h3>{{ item.title_name }}</h3>
+                    <p>Episode: {{ item.episode }}</p>
+                    {% if item.episode %}
+                        <a href="/watch/{{ item.raw_flair }}/episode-{{ item.episode }}" class="btn">Watch</a>
+                    {% else %}
+                        <a href="/watch/{{ item.raw_flair }}" class="btn">Watch</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</section>
+{% endblock %}

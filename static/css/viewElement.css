@@ -1,0 +1,113 @@
+.container {
+    padding-top: 50px;
+}
+
+.image-content {
+    border-radius: 15px;
+    justify-content: center;
+    box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.1);
+    background-color: #343a40;
+    align-items: center; 
+    display: inline;
+    height: 100%;
+}
+
+.content {
+    border-radius: 15px;
+    box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.1);
+    background-color: #343a40;
+}
+
+.card-header {
+    background-color: var(--main);
+    color: #fff;
+    border-radius: 15px 15px 0 0;
+}
+
+.image-content img {
+    align-content: center;
+    position: relative;
+    width: 230px;
+    height:325px;
+    -webkit-user-drag: none;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.card-title {
+    font-size: 30px;
+}
+
+.card-text {
+    margin-bottom: 10px;
+}
+
+.card-text strong{
+    color: var(--secondary);
+}
+
+.card-text p{
+    color: var(--tertiary);
+}
+.epi-but {
+    margin-top:1rem;
+    color: var(--tertiary);
+    background: var(--main);
+    border-radius: .6rem;
+    cursor: pointer;
+    font-size: 1.2rem; /* Adjust font size as needed */
+    padding: 0.8rem 2rem;
+    display: block;
+    text-align: center;
+}
+.epi-but:hover{
+    background: var(--secondary);
+    color: var(--main);
+}
+.btn-group{
+    max-width: 100%; /* Allow btn-group to take full width of episode-buttons */
+    overflow-x: auto; /* Enable horizontal scrolling if needed */
+    white-space: nowrap; /* Prevent wrapping of buttons */ 
+}
+.grp-but {
+    font-size: 1.7rem;
+    color: var(--tertiary);
+    background: var(--main);
+    border-radius: .5rem;
+    border-color: grey;
+    cursor: pointer;
+    margin-left: 15px;
+    padding: 1rem 3rem;
+    display: inline;
+    justify-content: center;
+    align-items: center;
+}
+
+.grp-but:hover {
+    background: var(--secondary);
+    color: var(--main);
+    letter-spacing: .1rem;
+}
+.group-content {
+    transition: transform 0.3s ease;
+    display: none;
+}
+
+.active {
+    display: inline;
+}
+
+.episode-head {
+    margin-top: 20px;
+    color: white;
+}
+#episode-buttons {
+    margin: 0 auto; /* Center the episode buttons */
+    max-width: 80%; /* Limit its size */
+    font-size: 0.9rem; /* Adjust font size as needed */
+}
+.episode-content-wrapper {
+    margin-top: 0.5rem; /* Adjust margin as needed */
+}

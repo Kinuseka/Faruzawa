@@ -1,0 +1,29 @@
+{% extends 'base.html.j2' %}
+{% block title %}
+<title>Search - Faruzawa</title>
+{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="header-search">
+        <h1 class="header-title">Search Page</h1>
+        <input type="text" id="searchInput" spellcheck=false class="search-input" placeholder="Search...">
+        <button id="searchBtn" class="search-btn">Search</button>
+    </div>
+    <main id="searchResults" class="search-results">
+     <div class="header-preload">
+        <h1>Search for content here</h1>
+     </div>
+    </main>
+    <div id="loadingContainer" class="loading-container">
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+        </div>
+        <div>
+           
+        </div>
+    </div>
+    <script src="/static/js/search.js"></script>
+</div>
+<main id="searchResults" class="search-results"></main>
+<link rel="stylesheet" href="/static/css/searchElement.css">
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html.j2' %}
+{% block content %}
+<section class="home" id="home">
+    <div class="swiper home-slider">
+        <div class="swiper-wrapper">
+            {% for item in front %}
+            <div class="swiper-slide">
+                <div class="box">
+                    <div class="content">
+                        <div id="text">
+                            <h3>{{ item.title_name }}</h3>
+                            <a href="/watch/{{ item.raw_flair }}" class="btn">Watch</a>
+                        </div>
+                        <img src="/img{{ item.cover }}" class="original-image" alt="{{ item.title_name }}">
+                    </div>
+                    <img src="/img{{ item.cover }}" class="blur-image" alt="{{ item.title_name }}">
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+<section class="anime" id="anime">
+    <h1 class="heading">New Releases</h1>
+    <div class="swiper anime-slider">
+        <div class="swiper-wrapper">
+            {% for item in new %}
+            <div class="swiper-slide">
+                <div class="box" style="background: url(/img{{ item.cover }}) no-repeat;"></div>
+                <div class="content">
+                    <h3>{{ item.title_name }}</h3>
+                    <p>Episode: {{ item.episode }}</p>
+                    {% if item.episode %}
+                        <a href="/watch/{{ item.raw_flair }}/episode-{{ item.episode_raw }}" class="btn">Watch</a>
+                    {% else %}
+                        <a href="/watch/{{ item.raw_flair }}" class="btn">Watch</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</section>
+<section class="anime" id="anime">
+    <h1 class="heading">Popular Anime</h1>
+    <div class="swiper anime-slider">
+        <div class="swiper-wrapper">
+            {% for item in popular %}
+            <div class="swiper-slide">
+                <div class="box" style="background: url(/img{{ item.cover }}) no-repeat;">
+                </div>
+                <div class="content">
+                    <h3>{{ item.title_name }}</h3>
+                    {% if item.episode %}
+                        <a href="/watch/{{ item.raw_flair }}/episode-{{ item.episode }}" class="btn">Watch</a>
+                    {% else %}
+                        <a href="/watch/{{ item.raw_flair }}" class="btn">Watch</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html.j2' %}
+{% block title %}
+<title>{{ details.title  }} - Faruzawa</title>
+{% endblock %}
+{% block meta %}
+<meta property="title" content="{{ details.title }} - Faruzawa">
+<meta property="image" content="{{ base_url }}/img{{ details.cover }}">
+<meta property="description" content="{{ details.description }}">
+<meta property="og:title" content="Faruzawa - {{ details.title }}">
+<meta property="og:description" content="{{ details.description }}">
+<meta property="og:image" content="{{ base_url }}/img{{ details.cover }}">
+{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card image-content d-flex bg-dark text-white">
+                <img src="/img{{ details.cover }}">
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card content">
+                <div class="card-header">
+                    <h1 class="card-title">{{ details.title }}</h1>
+                </div>  
+                <div class="card-body">
+                    <div class="card-text"><strong>Genre:</strong> <p>{%for detail in details.genre %}{{ detail }}{% endfor %}</p></div>
+                    <div class="card-text"><strong>Episodes:</strong> <p>{{ details.episodes }}</p></div>
+                    <div class="card-text"><strong>Status:</strong> <p>{{ details.status }}</p></div>
+                    <div class="card-text">
+                        <strong>Summary:</strong>
+                        <p>{{ details.description }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <h1 class="episode-head">Episodes:</h1>
+        <hr width="100%" color="white" size="50px" />
+        {% include "subtemplate/episode.html.j2" %}
+    </div>
+</div>
+<script src="/static/js/episodes.js"></script>
+<link rel="stylesheet" href="/static/css/viewElement.css">
+{% endblock %}

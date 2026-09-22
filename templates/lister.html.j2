@@ -1,0 +1,102 @@
+{% if ajax %}
+    {% extends 'ajaxBase.html.j2' %}
+{% else %}
+    {% extends 'base.html.j2' %}
+    {% block title %}
+    <title>{{ title }} {% if pagination.page_on!= 1 %}- Page {{ pagination.page_on }} {% endif %} - Faruzawa</title>
+    {% endblock %}
+{% endif %} 
+{% block content %}
+<div class="container">
+    <div class="pagination-top row">
+        <div class="col-12">
+            <nav aria-label="Anime Pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if pagination.page_on > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" {% if ajax %}href="" data-value="?page=1"{% else %}href="?page=1"{% endif %} tabindex="-1" aria-disabled="true"><<</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" {% if ajax %}href="" data-value="?page={{ pagination.page_on - 1 }}"{% else %}href="?page={{ pagination.page_on - 1 }}"{% endif %} tabindex="-1" aria-disabled="true"><</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true"><</a>
+                    </li>
+                    {% endif %}
+                    {% for page_num in range(pagination.page_total - (4 if pagination.page_total > 4 else pagination.page_total-1), pagination.page_total + 1) %}
+                    <li class="page-item {% if page_num == pagination.page_on %}active{% endif %}">
+                        <a class="page-link" {% if ajax %}href="" data-value="?page={{ page_num }}"{% else %}href="?page={{ page_num }}"{% endif %}>{{ page_num }} {% if page_num == pagination.page_on %}{% endif %}</a>
+                    </li>
+                    {% endfor %}
+
+                    {% if pagination.page_on < pagination.page_total %}
+                    <li class="page-item">
+                        <a class="page-link" {% if ajax %}href="" data-value="?page={{ pagination.page_on + 1 }}"{% else %}href="?page={{ pagination.page_on + 1 }}"{% endif %}>{{ ">" if not ajax else ">>" }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="" tabindex="-1" aria-disabled="true">{{ ">" if not ajax else ">>" }}</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    <div class="row">
+        {% for anime in data %}
+        <div class="col-md-4 col-sm-6 mb-3">
+            <div class="card mb-4">
+                <img src="/img{{ anime.cover }}" alt="{{ anime.title_name }}" class="card-img-top">
+                <div class="card-body">
+                    <h3 class="card-title">{{ anime.title_name }}</h3>
+                    {# <p class="card-text">{{ anime.description }}</p> #}
+                    {% if anime.episode %}
+                        <p class="card-title">Episode: {{ anime.episode }}</p>
+                        <a href="/watch/{{ anime.raw_flair }}/episode-{{ anime.episode_raw }}" class="btn">Watch</a>
+                    {% else %}
+                        <a href="/watch/{{ anime.raw_flair }}" class="btn">Watch</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="pagination-bottom row">
+        <div class="col-12">
+            <nav aria-label="Anime Pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if pagination.page_on > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" {% if ajax %}href="" data-value="?page=1"{% else %}href="?page=1"{% endif %} tabindex="-1" aria-disabled="true"><<</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" {% if ajax %}href="" data-value="?page={{ pagination.page_on - 1 }}"{% else %}href="?page={{ pagination.page_on - 1 }}"{% endif %} tabindex="-1" aria-disabled="true"><</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true"><</a>
+                    </li>
+                    {% endif %}
+                    {% for page_num in range(pagination.page_total - (4 if pagination.page_total > 4 else pagination.page_total-1), pagination.page_total + 1) %}
+                    <li class="page-item {% if page_num == pagination.page_on %}active{% endif %}">
+                        <a class="page-link" {% if ajax %}href="" data-value="?page={{ page_num }}"{% else %}href="?page={{ page_num }}"{% endif %}>{{ page_num }} {% if page_num == pagination.page_on %}{% endif %}</a>
+                    </li>
+                    {% endfor %}
+
+                    {% if pagination.page_on < pagination.page_total %}
+                    <li class="page-item">
+                        <a class="page-link" {% if ajax %}href="" data-value="?page={{ pagination.page_on + 1 }}"{% else %}href="?page={{ pagination.page_on + 1 }}"{% endif %}>{{ ">" if not ajax else ">>" }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">{{ ">" if not ajax else ">>" }}</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>  
+<link rel="stylesheet" href="static/css/sideElement.css">
+{% endblock %}

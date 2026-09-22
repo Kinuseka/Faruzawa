@@ -1,0 +1,42 @@
+{% extends 'base.html.j2' %}
+{% block title %}
+<title>{{ details.full_title  }} Episode {{ details.episode_now }} - Faruzawa</title>
+{% endblock %}
+{% block meta %}
+<meta property="title" content="{{ details.full_title }} Episode {{ details.episode_now }} - Faruzawa">
+<meta property="image" content="{{ base_url }}/img{{ details.cover }}">
+<meta property="description" content="Watch {{ details.full_title }} episode {{ details.episode_now }} on Faruzawa.">
+<meta property="og:title" content="Faruzawa - {{ details.full_title }} Episode {{ details.episode_now }}">
+<meta property="og:image" content="{{ base_url }}/img{{ details.cover }}">
+<meta property="og:description" content="Watch {{ details.full_title }} episode {{ details.episode_now }} on Faruzawa.">
+{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/video.css">
+<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css"/>
+<script src="/static/js/hls/hls.js"></script>
+<script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+<div class="video-wrapper">
+    <h1 class="video-title"><a href="/watch/{{ details.flair }}">{{ details.full_title }}</a></h1>
+    <h2>Episode: {{ details.episode_now }}</h2>
+    <div class="container d-flex align-items-center justify-content-center plyr__video-embed">
+        <div class="video-container">
+            <video id="video-player" controls>
+                <source src="{{ details.video_link }}" type="application/x-mpegURL" />
+            </video>
+        </div>
+    </div>
+</div>
+<div class="episode-navigation">
+    {% if details.episode_prev %}
+        <a class="prev-episode" href="{{ details.partial_flair }}{{ details.episode_prev }}">← Previous Episode</a>
+    {% else %}
+        <div class="prev-episode"></div>
+    {% endif %}
+    {% if details.episode_next %}
+        <a class="next-episode" href="{{ details.partial_flair }}{{ details.episode_next }}">Next Episode →</a>
+    {% else %}
+        <div class="next-episode"></div>
+    {% endif %}
+</div>
+<script src="/static/js/video.js"></script>
+{% endblock %}

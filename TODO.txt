@@ -1,0 +1,21 @@
+- Add genres
+- Collect thumbnails from external sources
+
+DD/MM/YYYY
+
+06/09/2024
+- make auto cache cleaner
+modified:
+cache_session_prod
+cache_session
+essentials
+
+17/11/2024
+- Added video proxy option
+
+
+17/11/2024
+- DONE: Make video endpoint non-random
+
+18/11/2024
+- TODO: Recaptcha/turnstile before watch video

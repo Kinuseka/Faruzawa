@@ -1,0 +1,10 @@
+{% if ajax %}
+    {% extends 'ajaxBase.html.j2' %}
+{% else %}
+    {% extends 'baseError.html.j2' %}
+{% endif %} 
+{% block content %}
+<div class="error" id="home">
+    <h1>404 - Content Not Found</h1>
+</div>
+{% endblock %}

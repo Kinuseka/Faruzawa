@@ -1,0 +1,14 @@
+BeautifulSoup4
+requests
+CFSession
+flask
+flask-session
+cachetools
+requests-cache
+gunicorn
+pycryptodome
+blinker==1.7.0
+git+https://github.com/globocom/m3u8.git
+flask-sitemapper
+pymongo
+pyyaml

@@ -1,0 +1,27 @@
+<div id="episode-buttons" class="mt-3">
+    {% set totalEpisodes = details.episodes %}
+    {% set episodesPerGroup = 30 %}
+    {% set numGroups = (totalEpisodes // episodesPerGroup) + (1 if totalEpisodes % episodesPerGroup != 0 else 0) %}
+    <div class="btn-group" role="group" aria-label="Episode Groups">
+        {% for group in range(numGroups) %}
+        <button type="button" class="grp-but btn-outline-primary {% if group == 0 %}active{% endif %}" id="group-{{ group }}-btn" onclick="showGroup({{ group }})">{{ group * episodesPerGroup + 1 }}-{% if (group + 1) * episodesPerGroup < totalEpisodes %}{{ (group + 1) * episodesPerGroup }}{% else %}{{ totalEpisodes }}{% endif %}</button>
+        {% endfor %}
+    </div>
+    <div id="episode-content" class="episode-content-wrapper">
+        {% for group in range(numGroups) %}
+        <div class="group-content {% if group == 0 %}active{% endif %} animated" id="group-{{ group }}">
+            <div class="row">
+                {% set startEpisode = group * episodesPerGroup + 1 %}
+                {% set endEpisode = (group + 1) * episodesPerGroup %}
+                {% for episode in range(startEpisode, endEpisode + 1) %}
+                {% if episode <= totalEpisodes %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <button type="button" class="epi-but btn-outline-primary btn-block" onclick="redirectToEpisode('{{ details.episode_raw[episode-1] }}')">{{ details.episode_keys[episode-1] }}</button>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>

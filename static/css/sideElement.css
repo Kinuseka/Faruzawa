@@ -1,0 +1,65 @@
+/* Custom CSS for color theme */
+.card {
+    background-color: rgb(62, 61, 61); /* Background color for cards */
+    height: 100%;
+    border-radius: 1%;
+}
+
+.card img {
+    position: relative;
+    width: 100%;
+    height: 450px;
+    border-radius: 1%;
+    -webkit-user-drag: none;
+}
+
+.card-title {
+    font-size: 1.5rem;
+    color: var(--tertiary);
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.btn-outline-primary {
+    color: #007bff; /* Text color for primary outline buttons */
+    border-color: #007bff; /* Border color for primary outline buttons */
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    margin: 20px;
+}
+
+.card-text {
+    flex-grow: 1;
+}
+
+.btn-block {
+    margin-top: auto;
+}
+ /* Pagination Styles */
+.pagination {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.page-link {
+    background-color: #fff;
+    border: 1px solid rgb(62, 61, 61);
+    color: rgb(62, 61, 61);
+    border-radius: 5px;
+    padding: 8px 12px;
+    margin-right: 5px;
+}
+
+.page-item.active .page-link {
+    background-color: var(--main);
+    color: var(--tertiary);
+}
+
+.page-link:hover {
+    background-color: #f0f0f0;
+}

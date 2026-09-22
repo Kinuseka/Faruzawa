@@ -1,0 +1,10 @@
+{% extends 'base.html.j2' %}
+{% block title %}
+{% if not title: %}
+    <title>404 Not found - Faruzawa</title>
+{% else: %}
+    <title>{{ title }}</title>
+{% endif %}
+{% endblock %}
+{% block content %}
+{% endblock %}
