@@ -68,3 +68,6 @@ desktop.ini
 
 # Local probe / analysis scripts
 scripts/
+
+# Session/cache backends (may contain credentials)
+essentials/
