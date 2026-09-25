@@ -47,15 +47,15 @@
         {% for anime in data %}
         <div class="col-md-4 col-sm-6 mb-3">
             <div class="card mb-4">
-                <img src="/img{{ anime.cover }}" alt="{{ anime.title_name }}" class="card-img-top">
+                <img src="{{ cover_src(anime.cover) }}" alt="{{ anime.title_name }}" class="card-img-top">
                 <div class="card-body">
                     <h3 class="card-title">{{ anime.title_name }}</h3>
                     {# <p class="card-text">{{ anime.description }}</p> #}
-                    {% if anime.episode %}
+                    {% if title == 'New Releases' and anime.episode %}
                         <p class="card-title">Episode: {{ anime.episode }}</p>
                         <a href="/watch/{{ anime.raw_flair }}/episode-{{ anime.episode_raw }}" class="btn">Watch</a>
                     {% else %}
-                        <a href="/watch/{{ anime.raw_flair }}" class="btn">Watch</a>
+                        <a href="/watch/{{ anime.raw_flair }}" class="btn">View</a>
                     {% endif %}
                 </div>
             </div>
@@ -98,5 +98,5 @@
         </div>
     </div>
 </div>  
-<link rel="stylesheet" href="static/css/sideElement.css">
+<link rel="stylesheet" href="/static/css/sideElement.css">
 {% endblock %}

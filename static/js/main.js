@@ -6,7 +6,6 @@ $("body").click(function(e) {
   if (!(e.target.class == "navbar") && !($(e.target).parents(".navbar").length)) {
     if (e.target != menu && navbar.classList.contains('active')) {
       // Check if the click happened outside the navbar
-      console.log('outside')
       mobile_navbar(); 
     }
   }
@@ -15,8 +14,11 @@ menu.onclick = () =>{mobile_navbar()}
 mobile_hide.onclick = ()=>{mobile_navbar()}
 
 function mobile_navbar(){
-  menu.classList.toggle('fa-times');
-  navbar.classList.toggle('active');
+  var isOpen = navbar.classList.toggle('active');
+  menu.classList.toggle('fa-bars', !isOpen);
+  menu.classList.toggle('fa-times', isOpen);
+  menu.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  menu.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
 }
 
 var swiper = new Swiper(".home-slider", {

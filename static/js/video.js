@@ -1,10 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
 	const video = document.getElementById('video-player')
     const source = video.getElementsByTagName("source")[0].src;
-    const player = null
+    let player = null
+    let networkRecoveries = 0;
+    let mediaRecoveries = 0;
+    const MAX_NETWORK_RECOVERIES = 2;
+    const MAX_MEDIA_RECOVERIES = 2;
+
     // For more options see: https://github.com/sampotts/plyr/#options
-    const defaultOptions = {'storage': { enabled: true, key: 'faruzawa_player' }, 
-		'keyboard': {focused: false, global: true},  
+    const defaultOptions = {'storage': { enabled: true, key: 'faruzawa_player' },
+		'keyboard': {focused: false, global: true},
 		'invertTime': false,
 		'displayDuration': true,
 		'i18n': {
@@ -12,64 +17,145 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	};
 
+	function initPlyr(options) {
+		if (player) {
+			return player;
+		}
+		player = new Plyr(video, options);
+		bindFullscreenHandler();
+		return player;
+	}
+
+	function bindFullscreenHandler() {
+		if (!player || typeof $ === 'undefined') {
+			return;
+		}
+		player.on('ready', () => {
+			const fullscreenButton = $('.plyr__controls__item.plyr__control[data-plyr="fullscreen"]');
+            if (!fullscreenButton || !fullscreenButton.on) {
+                return;
+            }
+			fullscreenButton.on('click', function () {
+				setTimeout(() => {
+					handleFullscreenChange();
+				}, 100);
+			});
+		});
+	}
+
+    function showTerminalError(message) {
+        console.error('[FRZW-HLS] terminal error:', message);
+        const container = document.querySelector('.video-container');
+        if (!container) {
+            return;
+        }
+        const overlay = document.createElement('div');
+        overlay.className = 'frzw-player-error';
+        overlay.style.position = 'absolute';
+        overlay.style.inset = '0';
+        overlay.style.zIndex = '99';
+        overlay.style.background = 'rgba(0, 0, 0, 0.78)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.padding = '1rem';
+        overlay.style.textAlign = 'center';
+        overlay.style.color = '#fff';
+        overlay.style.fontSize = '0.95rem';
+        overlay.style.lineHeight = '1.5';
+        overlay.textContent = message;
+        const existing = container.querySelector('.frzw-player-error');
+        if (existing) {
+            existing.remove();
+        }
+        container.appendChild(overlay);
+    }
+
 	if (!Hls.isSupported()) {
 		video.src = source;
-		player = new Plyr(video, defaultOptions);
+		initPlyr(defaultOptions);
 	} else {
-		// For more Hls.js options, see https://github.com/dailymotion/hls.js
-		const hls = new Hls();
-		hls.loadSource(source);
-
-		// From the m3u8 playlist, hls parses the manifest and returns
-        // all available video qualities. This is important, in this approach,
-        // we will have one source on the Plyr player.
-        hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-            // Transform available levels into an array of integers (height values).
-            const availableQualities = hls.levels.map((l) => l.height).reverse()
-	      	availableQualities.unshift(0) //prepend 0 to quality array
-	      	// Add new qualities to option
-		    defaultOptions.quality = {
-		    	default: 0, //Default - AUTO
-		        options: availableQualities,
-		        forced: true,        
-		        onChange: (e) => updateQuality(e),
-		    }
-		    // Add Auto Label 
-			defaultOptions.i18n.qualityLabel = {
-				0: 'Auto',
-			}
-		    hls.on(Hls.Events.LEVEL_SWITCHED, function (event, data) {
-	          var span = document.querySelector(".plyr__menu__container [data-plyr='quality'][value='0'] span")
-	          if (hls.autoLevelEnabled) {
-				  span.innerHTML = `Auto (${hls.levels[data.level].height}p)`
-				} else {
-					span.innerHTML = `Auto`
-				}
-	        })
-			// Initialize new Plyr player with quality options
-			console.log('An error relating to blob://... should be expected after reinitializing player');
-            player = new Plyr(video, defaultOptions);
-        });	
-		
-		hls.attachMedia(video);
-    	window.hls = hls;		 
-    }
-	
-	video.addEventListener('ready', (event) => {
-		console.log('plyr is ready '+ event)
-		var fullscreenButton = $('.plyr__controls__item.plyr__control[data-plyr="fullscreen"]');
-		fullscreenButton.on('click', function() {
-			setTimeout(() => {
-				if ($(this).attr('aria-pressed') === 'true') {
-					// Entering fullscreen
-					handleFullscreenChange();
-				} else {
-					// Exiting fullscreen
-					handleFullscreenChange();
-				}
-			}, 100); // Timeout to allow aria-pressed to update
+		// Segment loading is Hls.js, not Plyr. maxBufferLength is the preload/ahead target in seconds.
+		const hls = new Hls({
+			maxBufferLength: 30,
+			maxMaxBufferLength: 60,
+			maxBufferSize: 80 * 1000 * 1000,
+			startFragPrefetch: true,
 		});
-	});
+
+		function plyrOptionsFromLevels() {
+			const options = {
+				...defaultOptions,
+				i18n: { ...defaultOptions.i18n },
+			};
+			const heights = hls.levels.map((l) => l.height).filter(Boolean);
+			if (heights.length > 1) {
+				const availableQualities = heights.slice().reverse();
+				availableQualities.unshift(0);
+				options.quality = {
+					default: 0,
+					options: availableQualities,
+					forced: true,
+					onChange: (e) => updateQuality(e),
+				};
+				options.i18n.qualityLabel = { 0: 'Auto' };
+			}
+			return options;
+		}
+
+		hls.on(Hls.Events.MANIFEST_PARSED, function () {
+			initPlyr(plyrOptionsFromLevels());
+			hls.on(Hls.Events.LEVEL_SWITCHED, function (event, data) {
+				const span = document.querySelector(".plyr__menu__container [data-plyr='quality'][value='0'] span");
+				if (!span || !hls.levels[data.level]) {
+					return;
+				}
+				if (hls.autoLevelEnabled) {
+					span.innerHTML = `Auto (${hls.levels[data.level].height}p)`;
+				} else {
+					span.innerHTML = 'Auto';
+				}
+			});
+		});
+
+        hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+            hls.loadSource(source);
+        });
+		hls.on(Hls.Events.ERROR, function (event, data) {
+            const statusCode = data && data.response ? data.response.code : null;
+			if (!data.fatal) {
+				return;
+			}
+			switch (data.type) {
+				case Hls.ErrorTypes.NETWORK_ERROR:
+                    if (statusCode === 401 || statusCode === 403) {
+                        showTerminalError(`Stream rejected by upstream (HTTP ${statusCode}).`);
+                        return;
+                    }
+                    networkRecoveries += 1;
+                    if (networkRecoveries > MAX_NETWORK_RECOVERIES) {
+                        showTerminalError('Playback stopped after repeated network recovery failures.');
+                        return;
+                    }
+                    setTimeout(() => hls.startLoad(video.currentTime), 250);
+					break;
+				case Hls.ErrorTypes.MEDIA_ERROR:
+                    mediaRecoveries += 1;
+                    if (mediaRecoveries > MAX_MEDIA_RECOVERIES) {
+                        showTerminalError('Playback stopped after repeated media recovery failures.');
+                        return;
+                    }
+                    setTimeout(() => hls.recoverMediaError(), 250);
+					break;
+				default:
+                    showTerminalError('Playback stopped due to an unrecoverable stream error.');
+					break;
+			}
+		});
+
+		hls.attachMedia(video);
+    	window.hls = hls;
+    }
 	
     
 	function updateQuality(newQuality) {

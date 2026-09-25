@@ -101,7 +101,16 @@
 
 .episode-head {
     margin-top: 20px;
-    color: white;
+    color: var(--tertiary);
+    width: 100%;
+    font-size: 2.4rem;
+}
+
+.prewatch-divider {
+    width: 100%;
+    border: 0;
+    border-top: 1px solid rgba(205, 231, 229, 0.2);
+    margin: 1.5rem 0 2rem;
 }
 #episode-buttons {
     margin: 0 auto; /* Center the episode buttons */

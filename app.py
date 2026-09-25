@@ -1,11 +1,11 @@
 from flask import Flask, send_from_directory, render_template, redirect, request, Response
-from subroutes import img_proxy, err_handlers, episode_handler, video_handler
+from subroutes import img_proxy, external_image_proxy, err_handlers, episode_handler, video_handler
 from essentials.essentials import sitemap
 from constants import Constants, version, version_label
+from essentials.tools import cover_src
 from mainHandler import main_handler
 from flask_session import Session
 from loguru import logger
-from API import GogoAPI
 import os
 log = logger.bind(name="CFSession")
 
@@ -39,11 +39,13 @@ def inject_global_variable():
     return {
         "base_url": Constants.full_name,
         "version_num": version,
-        "version_label": version_label
+        "version_label": version_label,
+        "cover_src": cover_src,
     }
 app.register_blueprint(main_handler)
 app.register_blueprint(episode_handler)
 app.register_blueprint(img_proxy, url_prefix='/img')
+app.register_blueprint(external_image_proxy, url_prefix='/imgext')
 app.register_blueprint(err_handlers)
 app.register_blueprint(video_handler)
 app.jinja_env.trim_blocks = True
@@ -54,4 +56,4 @@ sitemap.init_app(app=app)
 
 
 if __name__ == '__main__':
-    app.run('0.0.0.0', 3008, debug=True)
+    app.run('0.0.0.0', 3008, debug=True, threaded=True)

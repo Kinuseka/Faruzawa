@@ -1,84 +1,101 @@
-from flask import Blueprint, render_template, session, request as Request, Response
-from essentials.cache_session import VideoHandlerSession
-from essentials.tools import decrypt, encrypt
-from urllib.parse import urlparse
-from constants import Constants
-from flask import abort
-from API import GogoCDN
+from flask import Blueprint, render_template, request as Request, Response, abort
+from bridge import streaming
+from bridge import hls_hosting
+from essentials.tools import decrypt
+import frzw_exceptions
 from loguru import logger
-import requests.exceptions
+
 log = logger.bind(name="CFSession")
 
 video_handler = Blueprint('video_handler', __name__)
-session = VideoHandlerSession
 
-def proxify_video(url):
-    try:
-        resp = session.get(url, timeout=15)
-        resp.raise_for_status()
-        return resp
-    except requests.exceptions.RequestException as e:
-        log.exception('Failed to proxy on video_handler')
-        return None
-    except Exception as e:
-        log.exception('Unknown on video_handler')
-        return None
+_M3U8 = 'application/vnd.apple.mpegurl'
 
-def convert_to_proxy(file_target, proxy_the):
-    final = ""
-    parsed_url = urlparse(proxy_the)
-    i = 0
-    for line in file_target.splitlines():
-        if line.startswith("ep"):
-            reparse = parsed_url.path.split("/")[:-1]
-            reparse.append(line)
-            line = f'{parsed_url.scheme}://{parsed_url.hostname}{"/".join(reparse)}'
-            #Enable this line if you want to proxify videos
-            # line = '/streaming/hls/media/'+encrypt(line, differentiator="streamer")
-            #Enable this line to use the CDN proxy
-            line = f"{Constants.videocdn}/video-streaming/hls/seg/"+encrypt(line, differentiator="streamer",valuator=i,xor_mode=True)+f"?v={i}"
-            i += 1
-        final += line + '\n'
-    return final
 
 @video_handler.route("/streaming/video")
 def m3u8proxy():
     id = Request.args.get('id')
-    if not id: return abort(404)
+    if not id:
+        return abort(404)
     data = decrypt(id)
-    if not data: return render_template('errortemplates/serverError.html.j2', ajax=True), 500
-    cdn = GogoCDN(data)
-    video_data = cdn.get_streaming_data()
-    parsed_url = video_data._parse_url(video_data.video_url)
-    # print(video_data.sort_data('/streaming/hls/', full_url=False))
-    resp = proxify_video(video_data.video_url)
-    if not resp: return render_template('errortemplates/serverError.html.j2', ajax=True), 500
-    final = ""
-    for line in resp.text.splitlines():
-        if line.startswith("ep"):
-            reparse = parsed_url.path.split("/")[:-1]
-            reparse.append(line)
-            line = f'{parsed_url.scheme}://{parsed_url.hostname}{"/".join(reparse)}'
-            line = '/streaming/hls/'+encrypt(line, differentiator="m3u8_proxy")
-        final += line + '\n'
-    return Response(final, mimetype='application/vnd.apple.mpegurl')
+    if not data:
+        return render_template('errortemplates/serverError.html.j2', ajax=True), 500
+    try:
+        video_data = streaming.sources_for_episode_flair(data)
+    except frzw_exceptions.VideoNotFound as e:
+        log.warning(f"stream resolve failed for episode token: {e.message[:200]}")
+        return abort(404)
+    resp = hls_hosting.fetch_upstream(video_data.video_url)
+    if not resp:
+        return render_template('errortemplates/serverError.html.j2', ajax=True), 500
+    body = hls_hosting.rewrite_master_playlist(resp.text, video_data.video_url)
+    return Response(body, mimetype=_M3U8)
+
 
 @video_handler.route("/streaming/hls/<id>")
 def proxym3u8(id):
-    data = decrypt(id, differentiator="m3u8_proxy")
+    data = decrypt(id, differentiator="m3u8_proxy", valuator=0, xor_mode=True)
+    if not data:
+        data = decrypt(id, differentiator="m3u8_proxy")
     log.debug(f'[proxym3u8] {data}')
-    if not data: return render_template('errortemplates/serverError.html.j2', ajax=True), 500
-    resp = proxify_video(data)
-    if not resp: return render_template('errortemplates/serverError.html.j2', ajax=True), 500
-    content = convert_to_proxy(resp.text, data)
-    return Response(content, mimetype='application/vnd.apple.mpegurl')
+    if not data:
+        return render_template('errortemplates/serverError.html.j2', ajax=True), 500
+    resp = hls_hosting.fetch_upstream(data)
+    if not resp:
+        return render_template('errortemplates/serverError.html.j2', ajax=True), 500
+    if not resp.content.lstrip().startswith(b"#EXT"):
+        body, mimetype = hls_hosting.segment_response(resp)
+        return Response(
+            body,
+            mimetype=mimetype,
+            headers={'X-Content-Type-Options': 'nosniff', 'Accept-Ranges': 'bytes'},
+        )
+    content = hls_hosting.rewrite_media_playlist(resp.text, data)
+    return Response(content, mimetype=_M3U8)
+
+
+@video_handler.route("/streaming/hls/key")
+def proxy_hls_key():
+    token = Request.args.get("id")
+    if not token:
+        return abort(404)
+    data = decrypt(token, differentiator="hls_key_proxy", valuator=0, xor_mode=True)
+    if not data:
+        data = decrypt(token, differentiator="hls_key_proxy")
+    log.debug(f'[proxy_hls_key] {data}')
+    if not data:
+        return render_template('errortemplates/serverError.html.j2', ajax=True), 500
+    resp = hls_hosting.fetch_upstream(data, strict_mode=True)
+    if not resp:
+        return render_template('errortemplates/serverError.html.j2', ajax=True), 500
+    mimetype = (resp.headers.get("Content-Type") or "application/octet-stream").split(";")[0]
+    return Response(
+        resp.content or b"",
+        mimetype=mimetype,
+        headers={'X-Content-Type-Options': 'nosniff', 'Accept-Ranges': 'bytes'},
+    )
+
 
 @video_handler.route("/streaming/hls/media/<id>")
 def streamm3u8(id):
-    data = decrypt(id, differentiator="streamer")
+    seg_index = Request.args.get("v", type=int)
+    if seg_index is None:
+        return abort(404)
+    data = decrypt(
+        id,
+        differentiator="streamer",
+        valuator=seg_index,
+        xor_mode=True,
+    )
     log.debug(f'[streamm3u8] {data}')
-    if not data: return render_template('errortemplates/serverError.html.j2', ajax=True), 500
-    resp = proxify_video(data)
-    if not resp: return render_template('errortemplates/serverError.html.j2', ajax=True), 500
-    return Response(resp.content, mimetype='text/html')
-    
+    if not data:
+        return render_template('errortemplates/serverError.html.j2', ajax=True), 500
+    resp = hls_hosting.fetch_upstream(data, strict_mode=True)
+    if not resp:
+        return render_template('errortemplates/serverError.html.j2', ajax=True), 500
+    body, mimetype = hls_hosting.segment_response(resp)
+    return Response(
+        body,
+        mimetype=mimetype,
+        headers={'X-Content-Type-Options': 'nosniff', 'Accept-Ranges': 'bytes'},
+    )

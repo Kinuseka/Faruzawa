@@ -4,10 +4,10 @@
 {% endblock %}
 {% block meta %}
 <meta property="title" content="{{ details.full_title }} Episode {{ details.episode_now }} - Faruzawa">
-<meta property="image" content="{{ base_url }}/img{{ details.cover }}">
+<meta property="image" content="{{ base_url }}{{ cover_src(details.cover) }}">
 <meta property="description" content="Watch {{ details.full_title }} episode {{ details.episode_now }} on Faruzawa.">
 <meta property="og:title" content="Faruzawa - {{ details.full_title }} Episode {{ details.episode_now }}">
-<meta property="og:image" content="{{ base_url }}/img{{ details.cover }}">
+<meta property="og:image" content="{{ base_url }}{{ cover_src(details.cover) }}">
 <meta property="og:description" content="Watch {{ details.full_title }} episode {{ details.episode_now }} on Faruzawa.">
 {% endblock %}
 {% block content %}
@@ -18,9 +18,9 @@
 <div class="video-wrapper">
     <h1 class="video-title"><a href="/watch/{{ details.flair }}">{{ details.full_title }}</a></h1>
     <h2>Episode: {{ details.episode_now }}</h2>
-    <div class="container d-flex align-items-center justify-content-center plyr__video-embed">
+    <div class="container d-flex align-items-center justify-content-center">
         <div class="video-container">
-            <video id="video-player" controls>
+            <video id="video-player" playsinline>
                 <source src="{{ details.video_link }}" type="application/x-mpegURL" />
             </video>
         </div>

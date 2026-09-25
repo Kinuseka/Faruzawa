@@ -14,12 +14,31 @@
     padding: 0;
     box-sizing: border-box;
     text-decoration: none;
-    outline: none;
     border: none;
-    transition: all .2s linear;
+    transition: color .2s linear, background-color .2s linear, transform .2s linear, box-shadow .2s linear, opacity .2s linear;
 }
+
+*:focus{
+    outline: none;
+}
+
+*:focus-visible{
+    outline: 2px solid var(--main);
+    outline-offset: 3px;
+}
+
+::selection{
+    background-color: var(--main);
+    color: var(--light-color);
+}
+
 body{
     background-color:var(--light-color);
+    color: var(--tertiary);
+}
+
+.content-padding{
+    height: 0;
 }
 
 html{
@@ -37,6 +56,7 @@ section:nth-child(even){
 }
 
 header{
+    position: sticky;
     top: 0;
     left:0;
     right:0;
@@ -45,7 +65,8 @@ header{
     align-items: center;
     justify-content: space-between;
     z-index: 1000;
-    background-color: var(--light-color); 
+    background-color: var(--light-color);
+    border-bottom: 1px solid rgba(205, 231, 229, 0.08);
 }
 
 .logo-src {
@@ -113,7 +134,8 @@ header .navbar a:hover{
 }
 
 header .icons i,
-header .icons a{
+header .icons a,
+header .icons button.icon-btn{
     cursor: pointer;
     margin-left: .5rem;
     height: 4.5rem;
@@ -127,8 +149,25 @@ header .icons a{
     text-decoration: none;
 }
 
+header .icons button.icon-btn{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+header .navbar #mobile-hide{
+    appearance: none;
+    font: inherit;
+    cursor: pointer;
+    border: none;
+    width: 100%;
+    margin-top: .5rem;
+}
+
 header .icons i:hover,
-header .icons a:hover{
+header .icons a:hover,
+header .icons button.icon-btn:hover{
     color: var(--main);
     background: var(--tertiary);
     transform: rotate(360deg);
@@ -233,6 +272,7 @@ header .icons #menu-bars{
     transform: translateX(-50%);
 }
 .anime .content {
+    position: relative;
     width: 100%;
     height: 150px;
     background-color: rgb(62, 61, 61);
@@ -241,8 +281,13 @@ header .icons #menu-bars{
 
 .footer{
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: space-between;
-    padding: 10px;
+    gap: 1rem;
+    padding: 2rem 7%;
+    margin-top: 2rem;
+    border-top: 1px solid rgba(205, 231, 229, 0.08);
 }
 
 .footer .logo{
@@ -353,13 +398,20 @@ header .icons #menu-bars{
     max-width: fit-content;
     margin-left: auto;
     margin-right: auto;
+    padding: 4rem 2rem 6rem;
     text-align: center;
     color: var(--tertiary);
 }
+
 .error h1{
-    width: 300px;
+    display: inline-block;
+    max-width: 48rem;
+    padding: 2rem 3rem;
     border-radius: 10px;
     background-color: #373232;
+    font-size: 2.4rem;
+    font-weight: 600;
+    line-height: 1.35;
 }
 .hidden {
     display: none;

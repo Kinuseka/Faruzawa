@@ -69,5 +69,21 @@ desktop.ini
 # Local probe / analysis scripts
 scripts/
 
+# Sensitive local files (docs, probes, notes)
+private/
+documentation/
+
+
+# Provider adapters and upstream maps (kept local)
+API/*
+
+# Provider bridge notes (local / not for repo)
+**/PROVIDER.md
+**/PRODUCT.md
+
 # Session/cache backends (may contain credentials)
 essentials/
+
+# Assistive tools (For design and rapid development)
+.impeccable/
+.cursor/

@@ -1,8 +1,10 @@
 /* Custom CSS for color theme */
 .card {
-    background-color: rgb(62, 61, 61); /* Background color for cards */
+    background-color: rgb(62, 61, 61);
     height: 100%;
     border-radius: 1%;
+    border: 1px solid rgba(205, 231, 229, 0.06);
+    overflow: hidden;
 }
 
 .card img {
@@ -21,8 +23,16 @@
 }
 
 .btn-outline-primary {
-    color: #007bff; /* Text color for primary outline buttons */
-    border-color: #007bff; /* Border color for primary outline buttons */
+    color: var(--main);
+    border-color: var(--main);
+    background-color: transparent;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus-visible {
+    color: var(--darker-main);
+    background-color: var(--secondary);
+    border-color: var(--secondary);
 }
 
 .card-body {
@@ -47,19 +57,29 @@
 }
 
 .page-link {
-    background-color: #fff;
-    border: 1px solid rgb(62, 61, 61);
-    color: rgb(62, 61, 61);
-    border-radius: 5px;
-    padding: 8px 12px;
-    margin-right: 5px;
+    background-color: rgb(62, 61, 61);
+    border: 1px solid rgba(205, 231, 229, 0.15);
+    color: var(--tertiary);
+    border-radius: 0.5rem;
+    padding: 0.8rem 1.2rem;
+    margin-right: 0.5rem;
 }
 
 .page-item.active .page-link {
     background-color: var(--main);
+    border-color: var(--main);
     color: var(--tertiary);
 }
 
+.page-item.disabled .page-link {
+    background-color: rgba(62, 61, 61, 0.5);
+    border-color: rgba(205, 231, 229, 0.08);
+    color: rgba(205, 231, 229, 0.35);
+    pointer-events: none;
+}
+
 .page-link:hover {
-    background-color: #f0f0f0;
+    background-color: var(--darker-main);
+    border-color: var(--main);
+    color: var(--tertiary);
 }

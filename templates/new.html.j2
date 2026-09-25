@@ -6,15 +6,15 @@
         <div class="swiper-wrapper">
             {% for item in data %}
             <div class="swiper-slide">
-                <div class="box" style="background: url(/img{{ item.cover }}) no-repeat;">
+                <div class="box" style="background: url({{ cover_src(item.cover) }}) no-repeat;">
                 </div>
                 <div class="content">
                     <h3>{{ item.title_name }}</h3>
                     <p>Episode: {{ item.episode }}</p>
                     {% if item.episode %}
-                        <a href="/watch/{{ item.raw_flair }}/episode-{{ item.episode }}" class="btn">Watch</a>
+                        <a href="/watch/{{ item.raw_flair }}/episode-{{ item.episode_raw }}" class="btn">Watch</a>
                     {% else %}
-                        <a href="/watch/{{ item.raw_flair }}" class="btn">Watch</a>
+                        <a href="/watch/{{ item.raw_flair }}" class="btn">View</a>
                     {% endif %}
                 </div>
             </div>

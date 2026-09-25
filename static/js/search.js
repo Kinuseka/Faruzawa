@@ -53,7 +53,6 @@ function displayResults(response) {
 //AjaxPagination
 document.addEventListener('click', function(event) {
     if (event.target.classList.contains('page-link')) {
-        console.log('click detected')
         if (event.target.parentNode.classList.contains('active')) {return}
         event.preventDefault(); // Prevent the default link behavior
         const page = event.target.getAttribute('data-value');

@@ -24,11 +24,8 @@ class _BaseConstants(Configuration):
         self.load()
     #Backend
     @property
-    def gogoanime(self):
-        return self.data['Backend']['gogoanime']
-    @property
-    def gogocdn(self):
-        return self.data['Backend']['gogocdn']
+    def provider(self):
+        return self.data['Backend'].get('provider', 'src1')
     @property
     def useragent(self):
         return self.data['Backend']['useragent']
@@ -38,6 +35,15 @@ class _BaseConstants(Configuration):
     @property
     def videocdn(self):
         return self.data['Backend']['videocdn']
+    @property
+    def hls_rewrite(self):
+        return bool(self.data['Backend'].get('hls_rewrite', True))
+    @property
+    def hls_segments_local(self):
+        backend = self.data['Backend']
+        if 'hls_segments_local' in backend:
+            return bool(backend['hls_segments_local'])
+        return not (backend.get('videocdn') or '')
     #Website
     @property
     def server_name(self):

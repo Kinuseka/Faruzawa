@@ -9,31 +9,31 @@
                     <div class="content">
                         <div id="text">
                             <h3>{{ item.title_name }}</h3>
-                            <a href="/watch/{{ item.raw_flair }}" class="btn">Watch</a>
+                            <a href="/watch/{{ item.raw_flair }}" class="btn">View</a>
                         </div>
-                        <img src="/img{{ item.cover }}" class="original-image" alt="{{ item.title_name }}">
+                        <img src="{{ cover_src(item.cover) }}" class="original-image" alt="{{ item.title_name }}">
                     </div>
-                    <img src="/img{{ item.cover }}" class="blur-image" alt="{{ item.title_name }}">
+                    <img src="{{ cover_src(item.cover) }}" class="blur-image" alt="{{ item.title_name }}">
                 </div>
             </div>
             {% endfor %}
         </div>
     </div>
 </section>
-<section class="anime" id="anime">
+<section class="anime" id="new-releases">
     <h1 class="heading">New Releases</h1>
     <div class="swiper anime-slider">
         <div class="swiper-wrapper">
             {% for item in new %}
             <div class="swiper-slide">
-                <div class="box" style="background: url(/img{{ item.cover }}) no-repeat;"></div>
+                <div class="box" style="background: url({{ cover_src(item.cover) }}) no-repeat;"></div>
                 <div class="content">
                     <h3>{{ item.title_name }}</h3>
                     <p>Episode: {{ item.episode }}</p>
                     {% if item.episode %}
                         <a href="/watch/{{ item.raw_flair }}/episode-{{ item.episode_raw }}" class="btn">Watch</a>
                     {% else %}
-                        <a href="/watch/{{ item.raw_flair }}" class="btn">Watch</a>
+                        <a href="/watch/{{ item.raw_flair }}" class="btn">View</a>
                     {% endif %}
                 </div>
             </div>
@@ -42,21 +42,17 @@
 
     </div>
 </section>
-<section class="anime" id="anime">
+<section class="anime" id="popular-anime">
     <h1 class="heading">Popular Anime</h1>
     <div class="swiper anime-slider">
         <div class="swiper-wrapper">
             {% for item in popular %}
             <div class="swiper-slide">
-                <div class="box" style="background: url(/img{{ item.cover }}) no-repeat;">
+                <div class="box" style="background: url({{ cover_src(item.cover) }}) no-repeat;">
                 </div>
                 <div class="content">
                     <h3>{{ item.title_name }}</h3>
-                    {% if item.episode %}
-                        <a href="/watch/{{ item.raw_flair }}/episode-{{ item.episode }}" class="btn">Watch</a>
-                    {% else %}
-                        <a href="/watch/{{ item.raw_flair }}" class="btn">Watch</a>
-                    {% endif %}
+                    <a href="/watch/{{ item.raw_flair }}" class="btn">View</a>
                 </div>
             </div>
             {% endfor %}

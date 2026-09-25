@@ -25,17 +25,17 @@
 <body>
     <header class="navbar sticky-top navbar-fixed-top">
         <a href="/" class="logo"><img class="logo-src" src="/static/original_icon.png" />Faruzawa</a>
-        <nav class="navbar mobile-nav">
-             <a href="{{'/' if request.path != '/' else '#'}}">Home</a>
-             <a href="{{'/genre' if request.path != '/genre' else '#'}}">Genres</a>
-             <a href="{{'/popular' if request.path != '/popular' else '#'}}">Popular</a>
-             <a href="{{'/new' if request.path != '/new' else '#'}}">New</a>
-             <div class="arrow fas fa-arrow-up" id="mobile-hide"></div>
+        <nav class="navbar mobile-nav" id="primary-nav" aria-label="Primary">
+             <a href="{{'/' if request.path != '/' else '#'}}"{% if request.path == '/' %} class="active" aria-current="page"{% endif %}>Home</a>
+             <a href="{{'/genre' if request.path != '/genre' else '#'}}"{% if request.path == '/genre' %} class="active" aria-current="page"{% endif %}>Genres</a>
+             <a href="{{'/popular' if request.path != '/popular' else '#'}}"{% if request.path == '/popular' %} class="active" aria-current="page"{% endif %}>Popular</a>
+             <a href="{{'/new' if request.path != '/new' else '#'}}"{% if request.path == '/new' %} class="active" aria-current="page"{% endif %}>New</a>
+             <button type="button" class="arrow fas fa-arrow-up" id="mobile-hide" aria-label="Close menu"></button>
         </nav>
         <div class="icons">
-            <i class="fas fa-bars" id="menu-bars"></i>
-            <a href="{{'/search.html' if request.path != '/search.html' else '#'}} " class="fa fa-search"></i>
-            <a href="#" class="fas fa-heart"></a>
+            <button type="button" class="fas fa-bars icon-btn" id="menu-bars" aria-label="Open menu" aria-expanded="false" aria-controls="primary-nav"></button>
+            <a href="{{'/search.html' if request.path != '/search.html' else '#'}}" class="fa fa-search" aria-label="Search"></a>
+            <a href="#" class="fas fa-heart" aria-label="Favorites"></a>
         </div>
     </header>
     <div class="content-padding"></div>
