@@ -1,9 +1,153 @@
-/* Custom CSS for color theme */
+/* Browse grids: Popular, New, search results */
+.browse-page{
+    padding-bottom: 3rem;
+}
+
+.browse-heading{
+    margin: 0 0 2rem;
+    color: var(--main);
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1.15;
+    text-align: center;
+}
+
+.browse-page .pagination-top{
+    margin-bottom: 1rem;
+}
+
+.anime-card{
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: rgb(62, 61, 61);
+    border: 1px solid rgba(205, 231, 229, 0.08);
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    transition: transform .22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow .22s ease, border-color .22s ease;
+}
+
+.anime-card:hover,
+.anime-card:focus,
+.anime-card:focus-visible{
+    transform: translateY(-5px);
+    border-color: rgba(109, 175, 118, 0.45);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    text-decoration: none;
+}
+
+.anime-card:hover .anime-card-title,
+.anime-card:hover .anime-card-action,
+.anime-card:focus-visible .anime-card-title,
+.anime-card:focus-visible .anime-card-action{
+    text-decoration: none;
+}
+
+.anime-card-media{
+    position: relative;
+    display: block;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    background: #1a1a1a;
+}
+
+.anime-card-media img{
+    position: relative;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    -webkit-user-drag: none;
+}
+
+.anime-card-media::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.45) 0%,
+        rgba(0, 0, 0, 0.18) 18%,
+        transparent 32%
+    );
+    pointer-events: none;
+    transition: background .22s ease;
+}
+
+.anime-card:hover .anime-card-media::after,
+.anime-card:focus-visible .anime-card-media::after{
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.52) 0%,
+        rgba(0, 0, 0, 0.22) 20%,
+        transparent 36%
+    );
+}
+
+.anime-card-badge{
+    position: absolute;
+    left: 0.8rem;
+    bottom: 0.8rem;
+    z-index: 2;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.35rem;
+    background: var(--main);
+    color: #142018;
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.anime-card-body{
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    gap: 0.9rem;
+    padding: 1.2rem 1.2rem 1.4rem;
+}
+
+.anime-card-title{
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    color: var(--tertiary);
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: center;
+    text-decoration: none;
+}
+
+.anime-card-action{
+    display: block;
+    margin-top: auto;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    background: var(--main);
+    color: var(--tertiary);
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.anime-card:hover .anime-card-action,
+.anime-card:focus-visible .anime-card-action{
+    background: var(--secondary);
+    color: var(--darker-main);
+}
+
+/* Legacy card class (search ajax fragments) */
 .card {
     background-color: rgb(62, 61, 61);
     height: 100%;
-    border-radius: 1%;
-    border: 1px solid rgba(205, 231, 229, 0.06);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(205, 231, 229, 0.08);
     overflow: hidden;
 }
 
@@ -11,7 +155,7 @@
     position: relative;
     width: 100%;
     height: 450px;
-    border-radius: 1%;
+    object-fit: cover;
     -webkit-user-drag: none;
 }
 
@@ -50,7 +194,7 @@
 .btn-block {
     margin-top: auto;
 }
- /* Pagination Styles */
+
 .pagination {
     margin-top: 20px;
     text-align: center;
@@ -82,4 +226,21 @@
     background-color: var(--darker-main);
     border-color: var(--main);
     color: var(--tertiary);
+}
+
+@media (max-width: 768px){
+    .browse-heading{
+        font-size: 3rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .anime-card,
+    .anime-card-media::after{
+        transition: none;
+    }
+    .anime-card:hover,
+    .anime-card:focus-visible{
+        transform: none;
+    }
 }

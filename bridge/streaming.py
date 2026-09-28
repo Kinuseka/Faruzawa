@@ -1,9 +1,12 @@
 """Playback resolution and watch-page context (provider-neutral facade)."""
 
 from API import player_class
-from API.registry import resolve
+from API.HlsMetadata import parse_hls_master_media
+from API.registry import episode_audio_variants, external_subtitles_for_player
 from bridge.catalog import catalog
+from bridge import hls_hosting
 from essentials.tools import encrypt
+from constants import Constants
 import frzw_exceptions
 
 
@@ -65,7 +68,152 @@ class Streaming:
             episode_prev.replace(".", "-") if episode_prev else None
         )
         details["_episode_flair"] = full_flair
+        details["stream_provider"] = Constants.provider
+        details["playback_json_url"] = f"/streaming/playback.json?id={token_id}"
         return details
+
+    def _master_url_for_flair(self, episode_flair: str) -> str:
+        token_id = encrypt(episode_flair)
+        return f"/streaming/video?id={token_id}"
+
+    def _playback_json_url_for_flair(self, episode_flair: str) -> str:
+        token_id = encrypt(episode_flair)
+        return f"/streaming/playback.json?id={token_id}"
+
+    def _proxied_subtitle_url(self, upstream_url: str) -> str:
+        token = encrypt(
+            upstream_url,
+            differentiator="subtitle_proxy",
+            valuator=0,
+            xor_mode=True,
+        )
+        return f"/streaming/subtitle?id={token}"
+
+    def _active_audio_id(self, episode_flair: str) -> str:
+        parts = episode_flair.split(":")
+        if len(parts) >= 4 and parts[0] == "anilist":
+            audio = parts[3]
+            if audio in ("sub", "dub"):
+                return audio
+        return "default"
+
+    def playback_descriptor(self, episode_flair: str) -> dict | None:
+        try:
+            video_data = self.sources_for_episode_flair(episode_flair)
+        except frzw_exceptions.VideoNotFound:
+            return None
+
+        sources = (
+            video_data.get_sources()
+            if hasattr(video_data, "get_sources")
+            else video_data.get("source", [])
+        )
+        qualities = [
+            {"label": str(item.get("quality") or "auto")} for item in (sources or [])
+        ]
+        if not qualities:
+            qualities = [{"label": "auto"}]
+
+        media = {"subtitles": [], "audio": []}
+        resp = hls_hosting.fetch_upstream(video_data.video_url)
+        if resp and resp.text:
+            media = parse_hls_master_media(resp.text)
+
+        subtitle_tracks = [
+            {
+                "id": row.get("group_id") or row.get("language") or row.get("name") or "subs",
+                "label": row.get("name") or row.get("language") or "Subtitles",
+                "language": row.get("language") or "",
+                "source": "hls",
+                "kind": "vtt",
+                "hlsGroupId": row.get("group_id") or "",
+            }
+            for row in media.get("subtitles") or []
+        ]
+
+        player = self.player_for_episode_flair(episode_flair)
+        for row in external_subtitles_for_player(player):
+            track_id = f"{row.get('lang', '')}-{row.get('label', '')}".strip("-") or "sub"
+            upstream = row.get("url") or ""
+            if not upstream:
+                continue
+            subtitle_tracks.append(
+                {
+                    "id": track_id,
+                    "label": row.get("label") or row.get("lang") or "Subtitles",
+                    "language": row.get("lang") or "",
+                    "source": "external",
+                    "kind": (row.get("kind") or "vtt").lower(),
+                    "url": self._proxied_subtitle_url(upstream),
+                }
+            )
+
+        hls_audio = [
+            {
+                "id": row.get("group_id") or row.get("name") or "audio",
+                "label": row.get("name") or row.get("language") or "Audio",
+                "language": row.get("language") or "",
+                "default": bool(row.get("default")),
+            }
+            for row in media.get("audio") or []
+        ]
+
+        parts = episode_flair.split(":")
+        title_flair = parts[1] if len(parts) >= 2 and parts[0] == "anilist" else None
+        episode_id = parts[2] if len(parts) >= 3 and parts[0] == "anilist" else None
+        series = (
+            self._catalog.series_for_flair(title_flair)
+            if title_flair
+            else None
+        )
+        raw_variants = (
+            episode_audio_variants(series, episode_id, episode_flair)
+            if series and episode_id
+            else [
+                {
+                    "id": "default",
+                    "label": "Original",
+                    "mode": "separate_stream",
+                    "episodeFlair": episode_flair,
+                }
+            ]
+        )
+        audio_variants = []
+        for variant in raw_variants:
+            flair = variant.get("episodeFlair") or episode_flair
+            audio_variants.append(
+                {
+                    "id": variant.get("id", "default"),
+                    "label": variant.get("label", "Original"),
+                    "mode": variant.get("mode", "separate_stream"),
+                    "masterUrl": self._master_url_for_flair(flair),
+                    "playbackJsonUrl": self._playback_json_url_for_flair(flair),
+                }
+            )
+
+        active_audio = self._active_audio_id(episode_flair)
+        if not any(v["id"] == active_audio for v in audio_variants):
+            active_audio = audio_variants[0]["id"] if audio_variants else "default"
+
+        return {
+            "masterUrl": self._master_url_for_flair(episode_flair),
+            "qualityMode": "hls",
+            "qualities": qualities,
+            "audioVariants": audio_variants,
+            "hlsAudioRenditions": hls_audio,
+            "subtitles": subtitle_tracks,
+            "defaults": {
+                "quality": "auto",
+                "audio": active_audio,
+                "captions": "off",
+            },
+        }
+
+    def playback_descriptor_for_watch(self, title_flair: str, episode: str) -> dict | None:
+        flair = self.episode_flair(title_flair, episode)
+        if not flair:
+            return None
+        return self.playback_descriptor(flair)
 
 
 streaming = Streaming(catalog)

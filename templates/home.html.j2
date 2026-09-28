@@ -1,4 +1,14 @@
 {% extends 'base.html.j2' %}
+{% block meta %}
+{% set meta_desc = "Discover trending, popular, and new anime on Faruzawa. Watch free in your browser—no account needed." %}
+<meta name="description" content="{{ meta_desc }}">
+<meta property="description" content="{{ meta_desc }}">
+<meta property="title" content="Faruzawa">
+<meta property="image" content="{{ base_url }}/static/media/Faruzan-Talent.png">
+<meta property="og:title" content="Faruzawa">
+<meta property="og:description" content="{{ meta_desc }}">
+<meta property="og:image" content="{{ base_url }}/static/media/Faruzan-Talent.png">
+{% endblock %}
 {% block content %}
 <section class="home" id="home">
     <div class="swiper home-slider">
@@ -13,7 +23,7 @@
                         </div>
                         <img src="{{ cover_src(item.cover) }}" class="original-image" alt="{{ item.title_name }}">
                     </div>
-                    <img src="{{ cover_src(item.cover) }}" class="blur-image" alt="{{ item.title_name }}">
+                    <img src="{{ cover_src(item.cover) }}" class="blur-image" alt="">
                 </div>
             </div>
             {% endfor %}

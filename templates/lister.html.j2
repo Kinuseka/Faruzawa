@@ -5,9 +5,29 @@
     {% block title %}
     <title>{{ title }} {% if pagination.page_on!= 1 %}- Page {{ pagination.page_on }} {% endif %} - Faruzawa</title>
     {% endblock %}
+    {% block meta %}
+    {% if title == 'Popular' %}
+    {% set meta_desc = "Browse popular anime on Faruzawa. See what others are watching and stream free in your browser." %}
+    {% else %}
+    {% set meta_desc = "Find the latest anime releases on Faruzawa. Pick a show, choose an episode, and watch free in your browser." %}
+    {% endif %}
+    {% if pagination.page_on != 1 %}
+    {% set meta_desc = meta_desc ~ " Page " ~ pagination.page_on ~ "." %}
+    {% endif %}
+    <meta name="description" content="{{ meta_desc }}">
+    <meta property="description" content="{{ meta_desc }}">
+    <meta property="title" content="{{ title }}{% if pagination.page_on != 1 %} - Page {{ pagination.page_on }}{% endif %} - Faruzawa">
+    <meta property="image" content="{{ base_url }}/static/media/Faruzan-Talent.png">
+    <meta property="og:title" content="{{ title }} - Faruzawa">
+    <meta property="og:description" content="{{ meta_desc }}">
+    <meta property="og:image" content="{{ base_url }}/static/media/Faruzan-Talent.png">
+    {% endblock %}
 {% endif %} 
 {% block content %}
-<div class="container">
+<div class="container browse-page">
+    {% if title %}
+    <h1 class="browse-heading">{{ title }}</h1>
+    {% endif %}
     <div class="pagination-top row">
         <div class="col-12">
             <nav aria-label="Anime Pagination" class="mt-4">
@@ -43,22 +63,29 @@
             </nav>
         </div>
     </div>
-    <div class="row">
+    <div class="row browse-grid">
         {% for anime in data %}
-        <div class="col-md-4 col-sm-6 mb-3">
-            <div class="card mb-4">
-                <img src="{{ cover_src(anime.cover) }}" alt="{{ anime.title_name }}" class="card-img-top">
-                <div class="card-body">
-                    <h3 class="card-title">{{ anime.title_name }}</h3>
-                    {# <p class="card-text">{{ anime.description }}</p> #}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            {% if title == 'New Releases' and anime.episode %}
+            <a class="anime-card" href="/watch/{{ anime.raw_flair }}/episode-{{ anime.episode_raw }}">
+            {% else %}
+            <a class="anime-card" href="/watch/{{ anime.raw_flair }}">
+            {% endif %}
+                <span class="anime-card-media">
+                    <img src="{{ cover_src(anime.cover) }}" alt="{{ anime.title_name }}">
                     {% if title == 'New Releases' and anime.episode %}
-                        <p class="card-title">Episode: {{ anime.episode }}</p>
-                        <a href="/watch/{{ anime.raw_flair }}/episode-{{ anime.episode_raw }}" class="btn">Watch</a>
-                    {% else %}
-                        <a href="/watch/{{ anime.raw_flair }}" class="btn">View</a>
+                    <span class="anime-card-badge">Ep {{ anime.episode }}</span>
                     {% endif %}
-                </div>
-            </div>
+                </span>
+                <span class="anime-card-body">
+                    <span class="anime-card-title">{{ anime.title_name }}</span>
+                    {% if title == 'New Releases' and anime.episode %}
+                    <span class="anime-card-action">Watch</span>
+                    {% else %}
+                    <span class="anime-card-action">View</span>
+                    {% endif %}
+                </span>
+            </a>
         </div>
         {% endfor %}
     </div>

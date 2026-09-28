@@ -3,14 +3,19 @@
 <title>{{ details.full_title  }} Episode {{ details.episode_now }} - Faruzawa</title>
 {% endblock %}
 {% block meta %}
+{% set meta_desc = "Watch " ~ details.full_title ~ " episode " ~ details.episode_now ~ " free on Faruzawa in your browser." %}
+<meta name="description" content="{{ meta_desc }}">
+<meta property="description" content="{{ meta_desc }}">
 <meta property="title" content="{{ details.full_title }} Episode {{ details.episode_now }} - Faruzawa">
 <meta property="image" content="{{ base_url }}{{ cover_src(details.cover) }}">
-<meta property="description" content="Watch {{ details.full_title }} episode {{ details.episode_now }} on Faruzawa.">
 <meta property="og:title" content="Faruzawa - {{ details.full_title }} Episode {{ details.episode_now }}">
 <meta property="og:image" content="{{ base_url }}{{ cover_src(details.cover) }}">
-<meta property="og:description" content="Watch {{ details.full_title }} episode {{ details.episode_now }} on Faruzawa.">
+<meta property="og:description" content="{{ meta_desc }}">
 {% endblock %}
 {% block content %}
+{# Set your loading and error artwork paths here #}
+{% set player_loading_image = "/static/media/player-loading.png" %}
+{% set player_error_image = "/static/media/player-error.png" %}
 <link rel="stylesheet" href="/static/css/video.css">
 <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css"/>
 <script src="/static/js/hls/hls.js"></script>
@@ -19,10 +24,26 @@
     <h1 class="video-title"><a href="/watch/{{ details.flair }}">{{ details.full_title }}</a></h1>
     <h2>Episode: {{ details.episode_now }}</h2>
     <div class="container d-flex align-items-center justify-content-center">
-        <div class="video-container">
-            <video id="video-player" playsinline>
-                <source src="{{ details.video_link }}" type="application/x-mpegURL" />
-            </video>
+        <div class="video-stage">
+            <div class="video-container" data-stream-provider="{{ details.stream_provider | default('src1') }}"
+                data-player-loading-src="{{ player_loading_image }}"
+                data-player-error-src="{{ player_error_image }}">
+                <div class="frzw-player-loading" id="frzw-player-loading" aria-busy="true" aria-label="Loading video">
+                    <img class="frzw-player-loading-art" src="{{ player_loading_image }}" alt="">
+                    <div class="frzw-player-loading-scrim" aria-hidden="true"></div>
+                    <div class="frzw-player-loading-spinner" role="progressbar" aria-label="Loading"></div>
+                </div>
+                <div class="frzw-player-error-panel" id="frzw-player-error" hidden>
+                    <img src="{{ player_error_image }}" alt="">
+                    <p class="frzw-player-error-text" id="frzw-player-error-text"></p>
+                </div>
+                <video id="video-player" playsinline
+                    data-playback-json="{{ details.playback_json_url }}"
+                    data-master-url="{{ details.video_link }}">
+                    <source src="{{ details.video_link }}" type="application/x-mpegURL" />
+                </video>
+            </div>
+            <div class="frzw-track-controls" id="frzw-track-controls" hidden aria-label="Playback tracks"></div>
         </div>
     </div>
 </div>
@@ -38,5 +59,9 @@
         <div class="next-episode"></div>
     {% endif %}
 </div>
+<script src="/static/js/jassub/jassub.umd.js"></script>
+{% if details.stream_provider == 'src2' %}
+<script src="/static/js/src-2-decoder.js"></script>
+{% endif %}
 <script src="/static/js/video.js"></script>
 {% endblock %}

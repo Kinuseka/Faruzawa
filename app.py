@@ -7,6 +7,10 @@ from mainHandler import main_handler
 from flask_session import Session
 from loguru import logger
 import os
+import mimetypes
+
+mimetypes.add_type('application/wasm', '.wasm')
+
 log = logger.bind(name="CFSession")
 
 app = Flask(__name__)

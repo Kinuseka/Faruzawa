@@ -21,21 +21,20 @@ function mobile_navbar(){
   menu.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
 }
 
-var swiper = new Swiper(".home-slider", {
+if (document.querySelector(".home-slider")) {
+  new Swiper(".home-slider", {
     spaceBetween: 30,
     centeredSlides: true,
     autoplay: {
       delay: 7500,
       disableOnInteraction: false,
     },
-    // pagination: {
-    //   el: ".swiper-pagination",
-    //   clickable: true,
-    // },
     loop:true,
   });
+}
 
-  var swiper = new Swiper(".anime-slider", {
+  if (document.querySelector(".anime-slider")) {
+  new Swiper(".anime-slider", {
     slidesPerView: 'auto',
     spaceBetween: 30,
     centeredSlides: true,
@@ -67,3 +66,4 @@ var swiper = new Swiper(".home-slider", {
       }
     }
   });
+  }

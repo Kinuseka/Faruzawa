@@ -8,11 +8,13 @@
     <title>Faruzawa</title>
     {% endblock -%}
     {% block meta %}
+    {% set meta_desc = "Watch free anime online on Faruzawa. Browse popular and new releases, pick an episode, and stream in your browser." %}
+    <meta name="description" content="{{ meta_desc }}">
+    <meta property="description" content="{{ meta_desc }}">
     <meta property="title" content="Faruzawa">
     <meta property="image" content="{{ base_url }}/static/media/Faruzan-Talent.png">
-    <meta property="description" content="Watch free contents here on Faruzawa!">
     <meta property="og:title" content="Faruzawa">
-    <meta property="og:description" content="Watch free contents here on Faruzawa!">
+    <meta property="og:description" content="{{ meta_desc }}">
     <meta property="og:image" content="{{ base_url }}/static/media/Faruzan-Talent.png">
     {% endblock %}
     <link rel="stylesheet" href="https://unpkg.com/swiper@7/swiper-bundle.min.css"/>

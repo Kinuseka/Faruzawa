@@ -45,6 +45,8 @@ html{
     font-size: 62.5%;
     overflow-x: hidden;
     scroll-padding-top:5.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--darker-main) transparent;
 }
 
 section{
@@ -95,7 +97,6 @@ header{
 .btn:hover{
     background: var(--secondary);
     color: var(--main);
-    letter-spacing: .1rem;
 }
 
 header .logo{
@@ -170,6 +171,10 @@ header .icons a:hover,
 header .icons button.icon-btn:hover{
     color: var(--main);
     background: var(--tertiary);
+}
+
+header .icons a.fa-search:hover,
+header .icons a.fa-heart:hover{
     transform: rotate(360deg);
 }
 
@@ -426,7 +431,17 @@ header .icons #menu-bars{
     color: var(--secondary);
 }
 
+.anime .swiper-slide{
+    transition: transform .22s cubic-bezier(0.22, 1, 0.36, 1);
+}
 
+.anime .swiper-slide:hover{
+    transform: translateY(-4px);
+}
+
+.anime .content{
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
 
 /* media query */
 @media(max-width: 991px){
@@ -499,24 +514,28 @@ header .icons #menu-bars{
 
 }
 
-/* Chrome, Safari */
+@media (prefers-reduced-motion: reduce){
+    header .icons a.fa-search:hover,
+    header .icons a.fa-heart:hover{
+        transform: none;
+    }
+}
+
+/* Scrollbars (vertical and horizontal) */
 ::-webkit-scrollbar {
     width: 10px;
-    height: 15px;
+    height: 10px;
 }
-::-webkit-scrollbar-track-piece  {
-    background-color: none;
+
+::-webkit-scrollbar-track {
+    background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-    height: 20px;
-    border-bottom-left-radius: 5px;
-    border-top-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    border-top-right-radius: 5px;
+    border-radius: 5px;
     background-color: var(--darker-main);
-    transition-delay: 10s;
 }
+
 ::-webkit-scrollbar-thumb:hover {
     background-color: var(--main);
-    transition-delay: 10s;
 }

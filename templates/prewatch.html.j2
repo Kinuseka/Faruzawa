@@ -3,41 +3,49 @@
 <title>{{ details.title  }} - Faruzawa</title>
 {% endblock %}
 {% block meta %}
+{% set meta_desc = ("Watch " ~ details.title ~ " free on Faruzawa. " ~ details.description) | replace('\n', ' ') | trim | truncate(300, killwords=False, end='…') %}
+<meta name="description" content="{{ meta_desc }}">
+<meta property="description" content="{{ meta_desc }}">
 <meta property="title" content="{{ details.title }} - Faruzawa">
 <meta property="image" content="{{ base_url }}{{ cover_src(details.cover) }}">
-<meta property="description" content="{{ details.description }}">
 <meta property="og:title" content="Faruzawa - {{ details.title }}">
-<meta property="og:description" content="{{ details.description }}">
+<meta property="og:description" content="{{ meta_desc }}">
 <meta property="og:image" content="{{ base_url }}{{ cover_src(details.cover) }}">
 {% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <div class="row">
+<div class="container mt-5 prewatch-page">
+    <div class="row prewatch-details">
         <div class="col-md-4">
-            <div class="card image-content d-flex bg-dark text-white">
+            <div class="card image-content bg-dark text-white">
                 <img src="{{ cover_src(details.cover) }}" alt="{{ details.title }} poster">
             </div>
         </div>
         <div class="col-md-8">
-            <div class="card content">
+            <div class="card content prewatch-info">
                 <div class="card-header">
                     <h1 class="card-title">{{ details.title }}</h1>
-                </div>  
-                <div class="card-body">
-                    <div class="card-text"><strong>Genre:</strong> <p>{%for detail in details.genre %}{{ detail + ", " if not loop.last else detail }}{% endfor %}</p></div>
-                    <div class="card-text"><strong>Episodes:</strong> <p>{{ details.episodes }}</p></div>
-                    <div class="card-text"><strong>Status:</strong> <p>{{ details.status }}</p></div>
-                    <div class="card-text">
-                        <strong>Summary:</strong>
-                        <p>{{ details.description }}</p>
+                </div>
+                <div class="card-body prewatch-info-body">
+                    <div class="prewatch-facts">
+                        <p class="prewatch-line"><strong>Genre:</strong> {% for detail in details.genre %}{{ detail + ", " if not loop.last else detail }}{% endfor %}</p>
+                        <p class="prewatch-line"><strong>Episodes:</strong> {{ details.episodes }}</p>
+                        <p class="prewatch-line prewatch-line-last"><strong>Status:</strong> {{ details.status }}</p>
+                    </div>
+                    <div class="prewatch-summary-box">
+                        <p class="prewatch-line prewatch-summary-label"><strong>Summary:</strong></p>
+                        <div class="prewatch-summary-scroll">
+                            <p class="prewatch-summary-text">{{ details.description }}</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <h2 class="episode-head">Episodes</h2>
+    </div>
+    <section class="prewatch-episodes" aria-labelledby="prewatch-episodes-heading">
+        <h2 id="prewatch-episodes-heading" class="episode-head">Episodes</h2>
         <hr class="prewatch-divider" />
         {% include "subtemplate/episode.html.j2" %}
-    </div>
+    </section>
 </div>
 <script src="/static/js/episodes.js"></script>
 <link rel="stylesheet" href="/static/css/viewElement.css">

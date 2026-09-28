@@ -2,6 +2,16 @@
 {% block title %}
 <title>Search - Faruzawa</title>
 {% endblock %}
+{% block meta %}
+{% set meta_desc = "Search the Faruzawa catalog for anime to watch free in your browser." %}
+<meta name="description" content="{{ meta_desc }}">
+<meta property="description" content="{{ meta_desc }}">
+<meta property="title" content="Search - Faruzawa">
+<meta property="image" content="{{ base_url }}/static/media/Faruzan-Talent.png">
+<meta property="og:title" content="Search - Faruzawa">
+<meta property="og:description" content="{{ meta_desc }}">
+<meta property="og:image" content="{{ base_url }}/static/media/Faruzan-Talent.png">
+{% endblock %}
 {% block content %}
 <div class="container mt-5">
     <div class="header-search">
