@@ -1,7 +1,7 @@
 import textwrap
 import yaml
 
-version = "v0.4.2"
+version = "v1.0.0"
 version_label = "Beta"
 
 
