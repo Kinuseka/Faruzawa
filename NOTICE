@@ -1,0 +1,25 @@
+Faruzawa
+Copyright (c) 2026 Kinuseka
+
+This project includes material from third parties. See the upstream projects
+for full license texts.
+
+Third-party components
+----------------------
+
+hls.js (bundled in static/js/hls/)
+  Copyright (c) hls.js contributors
+  License: Apache License 2.0
+  https://github.com/video-dev/hls.js
+
+JASSUB (bundled in static/js/jassub/)
+  Copyright (c) JASSUB contributors
+  License: MIT License
+  https://github.com/ThaUnknown/jassub
+  Note: JASSUB uses libass (GPLv2+) via WebAssembly; libass is not vendored
+  as separate source in this repository.
+
+m3u8 (Python dependency via requirements.txt)
+  Copyright (c) Globo.com
+  License: Apache License 2.0
+  https://github.com/globocom/m3u8
