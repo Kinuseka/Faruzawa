@@ -2,15 +2,19 @@
 
 
 
-[Faruzawa](https://faruzawa.com) is an anime viewing site. No signup and No ads.
+[Faruzawa](https://faruzawa.com) is an anime viewing site.
 
 The front page shows trending plus slices of popular and newly added titles. Popular and new each have their own paginated list.
 
-This was created just for myself but it is built for everyone. Published source in this repository is offered for inspection and learning. Some components (for example `API/`, `essentials/`, and local `config.yml`) are intentionally omitted from the repo and are not licensed for use or redistribution-all rights reserved unless stated otherwise.
+This was created just for myself but it is built for everyone. It is fundamentally a partiall open-source software where majority of the functional code is publicized,
+However some portion of this program will remain hidden to ensure these practices are kept vague and to protect myself and the source against prying eyes.
 
 Named after Faruzan from *Genshin Impact*.
 
 ## License
+
+Some components (for example `API/`, `essentials/`, and local `config.yml`) are intentionally omitted from the repo and are not licensed for use or redistribution-all rights reserved unless stated otherwise.
+The front page shows trending plus slices of popular and newly added titles. Popular and new each have their own paginated list, which are fetched from anilist.
 
 Files committed to this repository are licensed under the [MIT License](LICENSE).
 
