@@ -14,7 +14,6 @@ Named after Faruzan from *Genshin Impact*.
 ## License
 
 Some components (for example `API/`, `essentials/`, and local `config.yml`) are intentionally omitted from the repo and are not licensed for use or redistribution-all rights reserved unless stated otherwise.
-The front page shows trending plus slices of popular and newly added titles. Popular and new each have their own paginated list, which are fetched from anilist.
 
 Files committed to this repository are licensed under the [MIT License](LICENSE).
 
