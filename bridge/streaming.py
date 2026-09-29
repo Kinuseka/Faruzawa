@@ -2,7 +2,7 @@
 
 from API import player_class
 from API.HlsMetadata import parse_hls_master_media
-from API.registry import episode_audio_variants, external_subtitles_for_player
+from API.registry import external_subtitles_for_player
 from bridge.catalog import catalog
 from bridge import hls_hosting
 from essentials.tools import encrypt
@@ -98,21 +98,11 @@ class Streaming:
         return "default"
 
     def playback_descriptor(self, episode_flair: str) -> dict | None:
+        """Captions-only payload; stream master and in-manifest audio come from /streaming/video."""
         try:
             video_data = self.sources_for_episode_flair(episode_flair)
         except frzw_exceptions.VideoNotFound:
             return None
-
-        sources = (
-            video_data.get_sources()
-            if hasattr(video_data, "get_sources")
-            else video_data.get("source", [])
-        )
-        qualities = [
-            {"label": str(item.get("quality") or "auto")} for item in (sources or [])
-        ]
-        if not qualities:
-            qualities = [{"label": "auto"}]
 
         media = {"subtitles": [], "audio": []}
         resp = hls_hosting.fetch_upstream(video_data.video_url)
@@ -148,63 +138,9 @@ class Streaming:
                 }
             )
 
-        hls_audio = [
-            {
-                "id": row.get("group_id") or row.get("name") or "audio",
-                "label": row.get("name") or row.get("language") or "Audio",
-                "language": row.get("language") or "",
-                "default": bool(row.get("default")),
-            }
-            for row in media.get("audio") or []
-        ]
-
-        parts = episode_flair.split(":")
-        title_flair = parts[1] if len(parts) >= 2 and parts[0] == "anilist" else None
-        episode_id = parts[2] if len(parts) >= 3 and parts[0] == "anilist" else None
-        series = (
-            self._catalog.series_for_flair(title_flair)
-            if title_flair
-            else None
-        )
-        raw_variants = (
-            episode_audio_variants(series, episode_id, episode_flair)
-            if series and episode_id
-            else [
-                {
-                    "id": "default",
-                    "label": "Original",
-                    "mode": "separate_stream",
-                    "episodeFlair": episode_flair,
-                }
-            ]
-        )
-        audio_variants = []
-        for variant in raw_variants:
-            flair = variant.get("episodeFlair") or episode_flair
-            audio_variants.append(
-                {
-                    "id": variant.get("id", "default"),
-                    "label": variant.get("label", "Original"),
-                    "mode": variant.get("mode", "separate_stream"),
-                    "masterUrl": self._master_url_for_flair(flair),
-                    "playbackJsonUrl": self._playback_json_url_for_flair(flair),
-                }
-            )
-
-        active_audio = self._active_audio_id(episode_flair)
-        if not any(v["id"] == active_audio for v in audio_variants):
-            active_audio = audio_variants[0]["id"] if audio_variants else "default"
-
         return {
-            "masterUrl": self._master_url_for_flair(episode_flair),
-            "qualityMode": "hls",
-            "qualities": qualities,
-            "audioVariants": audio_variants,
-            "hlsAudioRenditions": hls_audio,
             "subtitles": subtitle_tracks,
             "defaults": {
-                "quality": "auto",
-                "audio": active_audio,
                 "captions": "off",
             },
         }

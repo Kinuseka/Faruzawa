@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from API.registry import hls_proxy, _strict_headers
 from constants import Constants
-from essentials.cache_session import VideoHandlerSession
+from essentials import cache_session
 from loguru import logger
 import requests.exceptions
 
 log = logger.bind(name="CFSession")
-_session = VideoHandlerSession
+
 
 def fetch_upstream(url: str, strict_mode=False):
     adapter = hls_proxy()
@@ -18,7 +18,7 @@ def fetch_upstream(url: str, strict_mode=False):
     else:
         headers = dict(adapter.headers_for_url(url) or {})
     try:
-        resp = _session.get(url, headers=headers, timeout=15)
+        resp = cache_session.VideoHandlerSession.get(url, headers=headers, timeout=15)
         resp.raise_for_status()
         return resp
     except requests.exceptions.RequestException:

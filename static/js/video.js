@@ -1,4 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+	if (new URLSearchParams(window.location.search).get('hlsDebug') === '1') {
+		try {
+			localStorage.setItem('debug', 'hls:*');
+		} catch (_) {
+			// ignore
+		}
+	}
+
 	const video = document.getElementById('video-player');
 	const trackControls = document.getElementById('frzw-track-controls');
 	const initialMaster =
@@ -582,69 +590,21 @@ document.addEventListener('DOMContentLoaded', () => {
 		video.appendChild(tr);
 	}
 
-	function renderAudioVariantControls(meta) {
-		const variants = (meta && meta.audioVariants) || [];
-		if (variants.length < 2) {
-			return;
-		}
-		const select = document.createElement('select');
-		select.className = 'frzw-track-select';
-		select.setAttribute('aria-label', 'Audio language');
-		variants.forEach((variant) => {
-			const opt = document.createElement('option');
-			opt.value = variant.masterUrl;
-			opt.textContent = variant.label || variant.id;
-			opt.dataset.variantId = variant.id;
-			if (variant.playbackJsonUrl) {
-				opt.dataset.playbackJson = variant.playbackJsonUrl;
-			}
-			if (meta.defaults && variant.id === meta.defaults.audio) {
-				opt.selected = true;
-			}
-			select.appendChild(opt);
-		});
-		select.addEventListener('change', () => {
-			const url = select.value;
-			if (!url || url === currentMaster || !window.hls) {
-				return;
-			}
-			currentMaster = url;
-			networkRecoveries = 0;
-			mediaRecoveries = 0;
-			destroyJassub();
-			clearNativeCaptionTracks();
-			window.hls.loadSource(url);
-			window.hls.startLoad(0);
-			const sourceEl = video.querySelector('source');
-			if (sourceEl) {
-				sourceEl.src = url;
-			}
-			const jsonUrl =
-				select.selectedOptions[0]?.dataset?.playbackJson || video.dataset.playbackJson;
-			if (jsonUrl) {
-				video.dataset.playbackJson = jsonUrl;
-			}
-			loadPlaybackMeta().then((nextMeta) => {
-				playbackMeta = nextMeta || playbackMeta;
-				captionUserOverride = false;
-				captionAppliedValue = null;
-				installWebVttCaptionTracks(playbackMeta);
-				refreshPlyrCaptions();
-				const cap = trackControls?.querySelector('[aria-label="Captions"]');
-				cap?.closest('.frzw-track-control')?.remove();
-				renderCaptionControls(window.hls, playbackMeta);
-			});
-		});
-		addTrackGroup('Audio', select);
+	function removeHlsAudioControl() {
+		trackControls
+			?.querySelector('[aria-label="Audio"]')
+			?.closest('.frzw-track-control')
+			?.remove();
 	}
 
 	function renderHlsAudioControls(hls) {
 		if (!hls.audioTracks || hls.audioTracks.length < 2) {
 			return;
 		}
+		removeHlsAudioControl();
 		const select = document.createElement('select');
 		select.className = 'frzw-track-select';
-		select.setAttribute('aria-label', 'HLS audio track');
+		select.setAttribute('aria-label', 'Audio');
 		hls.audioTracks.forEach((track, index) => {
 			const opt = document.createElement('option');
 			opt.value = String(index);
@@ -660,7 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				hls.audioTrack = idx;
 			}
 		});
-		addTrackGroup('Stream audio', select);
+		addTrackGroup('Audio', select);
 	}
 
 	function applyCaptionSelection(value, hls, external) {
@@ -826,27 +786,33 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	function wireHls(hls) {
+		let initialSourceLoaded = false;
+
+		hls.on(Hls.Events.LEVEL_SWITCHED, function (event, data) {
+			const span = document.querySelector(
+				".plyr__menu__container [data-plyr='quality'][value='0'] span"
+			);
+			if (!span || !hls.levels[data.level]) {
+				return;
+			}
+			if (hls.autoLevelEnabled) {
+				span.innerHTML = `Auto (${hls.levels[data.level].height}p)`;
+			} else {
+				span.innerHTML = 'Auto';
+			}
+		});
+
 		hls.on(Hls.Events.MANIFEST_PARSED, function () {
 			installWebVttCaptionTracks(playbackMeta);
 			initPlyr(plyrOptionsFromLevels(hls));
 			refreshPlyrCaptions();
 			clearTrackControls();
-			renderAudioVariantControls(playbackMeta);
 			renderHlsAudioControls(hls);
 			renderCaptionControls(hls, playbackMeta);
-			hls.on(Hls.Events.LEVEL_SWITCHED, function (event, data) {
-				const span = document.querySelector(
-					".plyr__menu__container [data-plyr='quality'][value='0'] span"
-				);
-				if (!span || !hls.levels[data.level]) {
-					return;
-				}
-				if (hls.autoLevelEnabled) {
-					span.innerHTML = `Auto (${hls.levels[data.level].height}p)`;
-				} else {
-					span.innerHTML = 'Auto';
-				}
-			});
+		});
+
+		hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, function () {
+			renderHlsAudioControls(hls);
 		});
 
 		hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, function () {
@@ -858,9 +824,13 @@ document.addEventListener('DOMContentLoaded', () => {
 			renderCaptionControls(hls, playbackMeta);
 		});
 
-        hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+		hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+			if (initialSourceLoaded || !currentMaster) {
+				return;
+			}
+			initialSourceLoaded = true;
 			hls.loadSource(currentMaster);
-        });
+		});
 
 		hls.on(Hls.Events.ERROR, function (event, data) {
             const statusCode = data && data.response ? data.response.code : null;
@@ -902,13 +872,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	loadPlaybackMeta().then((meta) => {
 		playbackMeta = meta;
-		if (meta && meta.masterUrl) {
-			currentMaster = meta.masterUrl;
-			const sourceEl = video.querySelector('source');
-			if (sourceEl) {
-				sourceEl.src = currentMaster;
-			}
-		}
 
 		if (!Hls.isSupported()) {
 			video.src = currentMaster;
@@ -918,7 +881,6 @@ document.addEventListener('DOMContentLoaded', () => {
 				controls: plyrControlsForPlayback(playbackMeta, null),
 			});
 			refreshPlyrCaptions();
-			renderAudioVariantControls(playbackMeta);
 			renderCaptionControls(null, playbackMeta);
 			return;
 		}
@@ -928,7 +890,8 @@ document.addEventListener('DOMContentLoaded', () => {
 			maxBufferLength: 30,
 			maxMaxBufferLength: 60,
 			maxBufferSize: 80 * 1000 * 1000,
-			startFragPrefetch: true,
+			startFragPrefetch: false,
+			testBandwidth: false,
 			enableWebVTT: true,
 			renderTextTracksNatively: true,
 		};
