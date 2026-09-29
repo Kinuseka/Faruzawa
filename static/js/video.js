@@ -286,18 +286,45 @@ document.addEventListener('DOMContentLoaded', () => {
 			return false;
 		}
 		const id = String(track.id || '');
+		const language = String(track.language || track.lang || '')
+			.trim()
+			.toLowerCase();
+		const label = String(track.label || '');
+		if (/^(eng|en)([-_.]|$)/i.test(id)) {
+			return true;
+		}
 		if (id && ENGLISH_SUBTITLE_RE.test(id)) {
 			return true;
 		}
-		if (/^(eng|en)(-|$)/i.test(id)) {
+		if (
+			language === 'english' ||
+			/^(eng|en)([-_.]|$)/.test(language) ||
+			/^en[-_]/.test(language)
+		) {
 			return true;
 		}
-		const language = String(track.language || track.lang || '').trim();
-		if (/^(eng|en)$/i.test(language)) {
+		if (ENGLISH_SUBTITLE_RE.test(label)) {
 			return true;
 		}
-		const label = String(track.label || '');
-		return ENGLISH_SUBTITLE_RE.test(label);
+		if (/\((eng|english)\)|\[(eng|english)\]/i.test(label)) {
+			return true;
+		}
+		return ENGLISH_SUBTITLE_RE.test(`${id} ${language} ${label}`);
+	}
+
+	function hlsSubtitleTrackLooksEnglish(track) {
+		if (!track) {
+			return false;
+		}
+		const name = String(track.name || '');
+		const lang = String(track.lang || '').trim().toLowerCase();
+		if (ENGLISH_SUBTITLE_RE.test(name)) {
+			return true;
+		}
+		if (/^(eng|en)([-_.]|$)/.test(lang) || lang === 'english' || /^en[-_]/.test(lang)) {
+			return true;
+		}
+		return ENGLISH_SUBTITLE_RE.test(`${name} ${lang}`);
 	}
 
 	function externalIndexForPlaybackTrack(external, track) {
@@ -349,14 +376,18 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 		const hlsTracks = (hls && hls.subtitleTracks) || [];
 		for (let i = 0; i < hlsTracks.length; i += 1) {
-			const track = hlsTracks[i];
-			const name = String(track.name || '');
-			const lang = String(track.lang || '');
-			if (ENGLISH_SUBTITLE_RE.test(name) || ENGLISH_SUBTITLE_RE.test(lang)) {
+			if (hlsSubtitleTrackLooksEnglish(hlsTracks[i])) {
 				return `hls:${i}`;
 			}
 		}
 		return null;
+	}
+
+	function applyDefaultCaptionSelection(chosen, hls, external) {
+		if (!chosen || chosen === 'off') {
+			return;
+		}
+		applyCaptionSelection(chosen, hls, external);
 	}
 
 	function captionOptionExists(select, value) {
@@ -697,14 +728,14 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (chosen && captionOptionExists(select, chosen)) {
 			select.value = chosen;
 			captionAppliedValue = chosen;
-			queueMicrotask(() => {
-				if (select.value === chosen) {
-					applyCaptionSelection(chosen, hls, external);
-				}
-			});
+			applyDefaultCaptionSelection(chosen, hls, external);
 		} else {
 			select.value = 'off';
-			captionAppliedValue = 'off';
+			if (!captionUserOverride) {
+				captionAppliedValue = null;
+			} else {
+				captionAppliedValue = 'off';
+			}
 		}
 
 		addTrackGroup('Captions', select);
@@ -817,8 +848,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, function () {
 			const existing = trackControls?.querySelector('[aria-label="Captions"]');
-			if (existing?.value) {
+			if (captionUserOverride && existing?.value) {
 				captionAppliedValue = existing.value;
+			} else if (!captionUserOverride) {
+				captionAppliedValue = null;
 			}
 			existing?.closest('.frzw-track-control')?.remove();
 			renderCaptionControls(hls, playbackMeta);
