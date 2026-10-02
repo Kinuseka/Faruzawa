@@ -87,7 +87,7 @@ class Streaming:
             valuator=0,
             xor_mode=True,
         )
-        return f"/streaming/subtitle?id={token}"
+        return f"/streaming/subtitle/{token}"
 
     def _active_audio_id(self, episode_flair: str) -> str:
         parts = episode_flair.split(":")

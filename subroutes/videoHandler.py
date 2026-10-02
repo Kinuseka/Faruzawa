@@ -12,13 +12,19 @@ log = logger.bind(name="CFSession")
 video_handler = Blueprint('video_handler', __name__)
 
 _M3U8 = 'application/vnd.apple.mpegurl'
+_SEGMENT_HEADERS = {'X-Content-Type-Options': 'nosniff', 'Accept-Ranges': 'bytes'}
 
 
-@video_handler.route("/streaming/subtitle")
-def proxy_subtitle():
-    token = Request.args.get("id")
-    if not token:
-        return abort(404)
+def _streaming_segment_response(upstream_resp, chunk_iter, *, prefix: bytes = b""):
+    from API.HlsProxy import segment_body_mimetype
+
+    mimetype = segment_body_mimetype(upstream_resp, prefix or None)
+    return Response(chunk_iter, mimetype=mimetype, headers=_SEGMENT_HEADERS)
+
+
+@video_handler.route("/streaming/subtitle/<id>")
+def proxy_subtitle(id):
+    token = id
     upstream_url = decrypt(
         token, differentiator="subtitle_proxy", valuator=0, xor_mode=True
     )
@@ -94,18 +100,15 @@ def proxym3u8(id):
     log.debug(f'[proxym3u8] {data}')
     if not data:
         return render_template('errortemplates/serverError.html.j2', ajax=True), 500
-    resp = hls_hosting.fetch_upstream(data)
+    resp = hls_hosting.open_upstream_segment_stream(data)
     if not resp:
         return render_template('errortemplates/serverError.html.j2', ajax=True), 500
-    if not resp.content.lstrip().startswith(b"#EXT"):
-        body, mimetype = hls_hosting.segment_response(resp)
-        return Response(
-            body,
-            mimetype=mimetype,
-            headers={'X-Content-Type-Options': 'nosniff', 'Accept-Ranges': 'bytes'},
-        )
-    content = hls_hosting.rewrite_media_playlist(resp.text, data)
-    return Response(content, mimetype=_M3U8)
+    prefix, body_iter = hls_hosting.read_stream_head(resp)
+    if prefix.lstrip().startswith(b"#EXT"):
+        text = hls_hosting.playlist_text_from_stream(body_iter)
+        content = hls_hosting.rewrite_media_playlist(text, data)
+        return Response(content, mimetype=_M3U8)
+    return _streaming_segment_response(resp, body_iter, prefix=prefix)
 
 
 @video_handler.route("/streaming/hls/key")
@@ -144,12 +147,8 @@ def streamm3u8(id):
     log.debug(f'[streamm3u8] {data}')
     if not data:
         return render_template('errortemplates/serverError.html.j2', ajax=True), 500
-    resp = hls_hosting.fetch_upstream(data, strict_mode=True)
+    resp = hls_hosting.open_upstream_segment_stream(data, strict_mode=True)
     if not resp:
         return render_template('errortemplates/serverError.html.j2', ajax=True), 500
-    body, mimetype = hls_hosting.segment_response(resp)
-    return Response(
-        body,
-        mimetype=mimetype,
-        headers={'X-Content-Type-Options': 'nosniff', 'Accept-Ranges': 'bytes'},
-    )
+    _prefix, chunk_iter = hls_hosting.read_stream_head(resp, max_bytes=0)
+    return _streaming_segment_response(resp, chunk_iter)

@@ -19,6 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
 	let plyrCaptionSyncBound = false;
 	let captionAppliedValue = null;
 	let captionUserOverride = false;
+	/** Caption select value to restore after PiP (ASS/JASSUB cannot render in the OS PiP window). */
+	let pipCaptionRestoreValue = null;
+	let pipUsedAssVttConversion = false;
+	let pipVttObjectUrl = null;
+	/** Plyr renders CC in .plyr__captions (not in OS PiP); force native TextTrack during PiP. */
+	let pipNativeOverrideTrack = null;
+	let pipCaptionNativeGuardBound = false;
 
 	const JASSUB_ASSETS = '/static/js/jassub';
 	const JASSUB_FALLBACK_WOFF2 = `${JASSUB_ASSETS}/default.woff2`;
@@ -72,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		player = new Plyr(video, options);
 		bindFullscreenHandler();
 		bindPlyrCaptionSync();
+		bindPipPlayerHooks();
 		return player;
 	}
 
@@ -516,28 +524,135 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
-	function showPlyrCaptionTrack(trackMeta) {
+	function findTextTrackForMeta(trackMeta) {
+		if (!trackMeta) {
+			return null;
+		}
 		const label = trackMeta.label || 'Captions';
 		const lang = normalizeSrclang(trackMeta.language);
-		let matched = false;
 		for (let i = 0; i < video.textTracks.length; i += 1) {
 			const textTrack = video.textTracks[i];
 			if (textTrack.kind !== 'captions' && textTrack.kind !== 'subtitles') {
 				continue;
 			}
-			const isMatch =
+			if (
 				textTrack.label === label ||
-				(textTrack.language && textTrack.language.startsWith(lang));
-			textTrack.mode = isMatch ? 'showing' : 'hidden';
-			if (isMatch) {
-				matched = true;
+				(textTrack.language && textTrack.language.startsWith(lang))
+			) {
+				return textTrack;
 			}
 		}
-		if (matched) {
-			refreshPlyrCaptions();
-			setPlyrCaptionsEnabled(true);
+		return null;
+	}
+
+	function findTextTrackForHlsIndex(hls, index) {
+		if (!hls || !hls.subtitleTracks || Number.isNaN(index)) {
+			return null;
 		}
-		return matched;
+		const meta = hls.subtitleTracks[index];
+		if (!meta) {
+			return null;
+		}
+		const name = String(meta.name || '');
+		const lang = String(meta.lang || '').toLowerCase();
+		for (let i = 0; i < video.textTracks.length; i += 1) {
+			const textTrack = video.textTracks[i];
+			if (textTrack.kind !== 'captions' && textTrack.kind !== 'subtitles') {
+				continue;
+			}
+			if (
+				(name && textTrack.label === name) ||
+				(lang && textTrack.language && textTrack.language.toLowerCase().startsWith(lang))
+			) {
+				return textTrack;
+			}
+		}
+		return null;
+	}
+
+	function pipNativeCaptionGuard() {
+		if (document.pictureInPictureElement !== video) {
+			return;
+		}
+		if (pipNativeOverrideTrack && pipNativeOverrideTrack.mode !== 'showing') {
+			pipNativeOverrideTrack.mode = 'showing';
+		}
+	}
+
+	function setNativeTrackShowingForPip(textTrack) {
+		if (!textTrack) {
+			return;
+		}
+		pipNativeOverrideTrack = textTrack;
+		for (let i = 0; i < video.textTracks.length; i += 1) {
+			const row = video.textTracks[i];
+			if (row.kind !== 'captions' && row.kind !== 'subtitles') {
+				continue;
+			}
+			row.mode = row === textTrack ? 'showing' : 'hidden';
+		}
+		if (!pipCaptionNativeGuardBound) {
+			pipCaptionNativeGuardBound = true;
+			video.addEventListener('timeupdate', pipNativeCaptionGuard);
+		}
+	}
+
+	function teardownPipNativeCaptionGuard() {
+		if (pipCaptionNativeGuardBound) {
+			video.removeEventListener('timeupdate', pipNativeCaptionGuard);
+			pipCaptionNativeGuardBound = false;
+		}
+		pipNativeOverrideTrack = null;
+	}
+
+	function restorePlyrCaptionRenderingAfterPip() {
+		teardownPipNativeCaptionGuard();
+		if (!player || !player.captions?.toggled) {
+			return;
+		}
+		const node = player.captions.currentTrackNode;
+		if (!node) {
+			return;
+		}
+		node.mode = 'hidden';
+		try {
+			node.dispatchEvent(new Event('cuechange'));
+		} catch (_) {
+			// ignore
+		}
+	}
+
+	function armNativeCaptionsForPipSelection(value, hls, external) {
+		if (!value || value === 'off') {
+			return;
+		}
+		if (value.startsWith('ext:')) {
+			const idx = parseInt(value.slice(4), 10);
+			const meta = external[idx];
+			setNativeTrackShowingForPip(findTextTrackForMeta(meta));
+			return;
+		}
+		if (value.startsWith('hls:')) {
+			const idx = parseInt(value.slice(4), 10);
+			setNativeTrackShowingForPip(findTextTrackForHlsIndex(hls, idx));
+		}
+	}
+
+	function showPlyrCaptionTrack(trackMeta) {
+		const textTrack = findTextTrackForMeta(trackMeta);
+		if (!textTrack) {
+			return false;
+		}
+		for (let i = 0; i < video.textTracks.length; i += 1) {
+			const row = video.textTracks[i];
+			if (row.kind !== 'captions' && row.kind !== 'subtitles') {
+				continue;
+			}
+			row.mode = row === textTrack ? 'showing' : 'hidden';
+		}
+		refreshPlyrCaptions();
+		setPlyrCaptionsEnabled(true);
+		return true;
 	}
 
 	function installWebVttCaptionTracks(meta) {
@@ -652,6 +767,472 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 		});
 		addTrackGroup('Audio', select);
+	}
+
+	function trackLanguageKey(track) {
+		if (!track) {
+			return '';
+		}
+		const lang = String(track.language || track.lang || '')
+			.trim()
+			.toLowerCase();
+		if (lang) {
+			return lang;
+		}
+		const id = String(track.id || '');
+		const prefix = id.split('-')[0]?.trim().toLowerCase();
+		return prefix || '';
+	}
+
+	function captionLanguagesMatch(trackA, trackB) {
+		const norm = (key) => {
+			if (!key) {
+				return '';
+			}
+			if (key === 'eng' || key === 'english' || key.startsWith('en')) {
+				return 'en';
+			}
+			return key.length >= 3 ? key.slice(0, 3) : key;
+		};
+		return norm(trackLanguageKey(trackA)) === norm(trackLanguageKey(trackB));
+	}
+
+	/** PiP only composites the video element; use WebVTT/SRT/HLS text tracks, not JASSUB canvas. */
+	function findPipCompatibleCaptionTrack(external, activeTrack) {
+		if (!activeTrack) {
+			return null;
+		}
+		if (isPlyrCaptionTrack(activeTrack)) {
+			return activeTrack;
+		}
+		for (const row of external) {
+			if (isPlyrCaptionTrack(row) && captionLanguagesMatch(row, activeTrack)) {
+				return row;
+			}
+		}
+		if (playbackSubtitleLooksEnglish(activeTrack)) {
+			for (const row of external) {
+				if (isPlyrCaptionTrack(row) && playbackSubtitleLooksEnglish(row)) {
+					return row;
+				}
+			}
+		}
+		return null;
+	}
+
+	function externalValueForTrack(external, track) {
+		const idx = externalIndexForPlaybackTrack(external, track);
+		return idx >= 0 ? `ext:${idx}` : null;
+	}
+
+	function activeCaptionTrackFromValue(value, external, hls) {
+		if (!value || value === 'off') {
+			return null;
+		}
+		if (value.startsWith('ext:')) {
+			const idx = parseInt(value.slice(4), 10);
+			return Number.isNaN(idx) ? null : external[idx];
+		}
+		if (value.startsWith('hls:') && hls && hls.subtitleTracks) {
+			const idx = parseInt(value.slice(4), 10);
+			return Number.isNaN(idx) ? null : hls.subtitleTracks[idx];
+		}
+		return null;
+	}
+
+	function syncCaptionSelectToValue(value) {
+		const select = trackControls?.querySelector('[aria-label="Captions"]');
+		if (select && value && captionOptionExists(select, value)) {
+			select.value = value;
+		}
+	}
+
+	function assTimeToVtt(raw) {
+		const match = String(raw || '')
+			.trim()
+			.match(/^(\d+):(\d{1,2}):(\d{1,2})[.,](\d+)$/);
+		if (!match) {
+			return null;
+		}
+		const hours = parseInt(match[1], 10);
+		const minutes = parseInt(match[2], 10);
+		const seconds = parseInt(match[3], 10);
+		const frac = match[4];
+		let millis;
+		if (frac.length === 2) {
+			millis = parseInt(frac, 10) * 10;
+		} else if (frac.length >= 3) {
+			millis = parseInt(frac.slice(0, 3), 10);
+		} else {
+			millis = parseInt(frac.padEnd(2, '0'), 10) * 10;
+		}
+		return `${hours.toString().padStart(2, '0')}:${minutes
+			.toString()
+			.padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${millis
+			.toString()
+			.padStart(3, '0')}`;
+	}
+
+	function assFormatFieldIndex(formatFields, name) {
+		const want = name.toLowerCase();
+		return formatFields.findIndex((field) => field.toLowerCase() === want);
+	}
+
+	function assPlainText(text) {
+		let cleaned = String(text || '').replace(/\{[^}]*\}/g, '');
+		cleaned = cleaned.replace(/\\N/g, '\n').replace(/\\n/g, '\n').replace(/\\h/g, ' ');
+		cleaned = cleaned.replace(/\\[a-zA-Z]+(?:\([^)]*\))?/g, '');
+		return cleaned.trim();
+	}
+
+	function assDialogueFormatFields(eventLines) {
+		for (const line of eventLines) {
+			const trimmed = line.trim();
+			if (trimmed.toLowerCase().startsWith('format:')) {
+				return trimmed
+					.slice(7)
+					.split(',')
+					.map((part) => part.trim());
+			}
+		}
+		return null;
+	}
+
+	function assCollectDialogueLines(allLines, seedFormatFields) {
+		let formatFields = seedFormatFields;
+		const dialogues = [];
+		for (const line of allLines) {
+			const trimmed = line.trim();
+			if (trimmed.toLowerCase().startsWith('format:')) {
+				formatFields = trimmed
+					.slice(7)
+					.split(',')
+					.map((part) => part.trim());
+				continue;
+			}
+			if (trimmed.toLowerCase().startsWith('dialogue:')) {
+				dialogues.push(trimmed);
+			}
+		}
+		return { formatFields, dialogues };
+	}
+
+	function assDialogueToVttCues(dialogues, formatFields) {
+		const fields = formatFields || [
+			'Layer',
+			'Start',
+			'End',
+			'Style',
+			'Name',
+			'MarginL',
+			'MarginR',
+			'MarginV',
+			'Effect',
+			'Text',
+		];
+		const startI = assFormatFieldIndex(fields, 'Start');
+		const endI = assFormatFieldIndex(fields, 'End');
+		if (startI < 0 || endI < 0) {
+			return [];
+		}
+		const textI = fields.length - 1;
+		// String.split limit = max segments; need fields.length so Text keeps embedded commas.
+		const splitLimit = fields.length;
+		const cues = [];
+		for (const stripped of dialogues) {
+			const payload = stripped.slice(stripped.indexOf(':') + 1).trim();
+			const parts = payload.split(',', splitLimit);
+			if (parts.length <= textI) {
+				continue;
+			}
+			const start = assTimeToVtt(parts[startI]);
+			const end = assTimeToVtt(parts[endI]);
+			if (!start || !end) {
+				continue;
+			}
+			const body = assPlainText(parts[textI]);
+			if (!body) {
+				continue;
+			}
+			cues.push(`${start} --> ${end}`, body, '');
+		}
+		return cues;
+	}
+
+	/** Client-only ASS/SSA → plain WebVTT for PiP (styling stripped). */
+	function assToVtt(assText) {
+		const normalized = String(assText || '')
+			.replace(/^\uFEFF/, '')
+			.replace(/\r\n/g, '\n')
+			.replace(/\r/g, '\n');
+		if (!normalized.trim()) {
+			return 'WEBVTT\n\n';
+		}
+		const allLines = normalized.split('\n');
+		const sections = { _header: [] };
+		let current = '_header';
+		for (const line of allLines) {
+			const trimmed = line.trim();
+			if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+				current = trimmed.toLowerCase();
+				if (!sections[current]) {
+					sections[current] = [];
+				}
+				continue;
+			}
+			if (!sections[current]) {
+				sections[current] = [];
+			}
+			sections[current].push(line);
+		}
+		const eventsKey =
+			Object.keys(sections).find((key) => key.startsWith('[events')) || '[events]';
+		const eventLines = sections[eventsKey] || [];
+		const fromEvents = assCollectDialogueLines(eventLines, assDialogueFormatFields(eventLines));
+		let cues = assDialogueToVttCues(fromEvents.dialogues, fromEvents.formatFields);
+		if (!cues.length) {
+			const fromAll = assCollectDialogueLines(allLines, fromEvents.formatFields);
+			cues = assDialogueToVttCues(fromAll.dialogues, fromAll.formatFields);
+		}
+		if (!cues.length) {
+			return 'WEBVTT\n\n';
+		}
+		return `WEBVTT\n\n${cues.join('\n').replace(/\n+$/, '')}\n`;
+	}
+
+	function removePipConvertedTrack() {
+		if (pipVttObjectUrl) {
+			URL.revokeObjectURL(pipVttObjectUrl);
+			pipVttObjectUrl = null;
+		}
+		video.querySelectorAll('track[data-frzw-pip-vtt]').forEach((node) => node.remove());
+		pipUsedAssVttConversion = false;
+	}
+
+	function attachPipConvertedAssTrack(track, vttUrl) {
+		return new Promise((resolve) => {
+			if (!track || !vttUrl) {
+				resolve(false);
+				return;
+			}
+			removePipConvertedTrack();
+			pipVttObjectUrl = vttUrl;
+			const tr = document.createElement('track');
+			tr.kind = 'captions';
+			tr.label = track.label || track.language || 'Captions';
+			tr.srclang = normalizeSrclang(track.language);
+			tr.src = vttUrl;
+			tr.default = true;
+			tr.setAttribute('data-frzw-caption', '1');
+			tr.setAttribute('data-frzw-pip-vtt', '1');
+			tr.setAttribute('data-frzw-caption-label', tr.label);
+			const finish = (ok) => {
+				tr.removeEventListener('load', onLoad);
+				tr.removeEventListener('error', onError);
+				resolve(ok);
+			};
+			const onLoad = () => {
+				const textTrack = tr.track;
+				if (!textTrack) {
+					finish(false);
+					return;
+				}
+				setAssRendering(false);
+				setNativeTrackShowingForPip(textTrack);
+				setPlyrCaptionsEnabled(true);
+				finish(true);
+			};
+			const onError = () => finish(false);
+			tr.addEventListener('load', onLoad);
+			tr.addEventListener('error', onError);
+			video.appendChild(tr);
+			refreshPlyrCaptions();
+			if (tr.readyState >= 2 && tr.track) {
+				onLoad();
+			}
+		});
+	}
+
+	function trackLooksLikeAssSource(track) {
+		const kind = trackKind(track);
+		if (kind === 'ass' || kind === 'ssa') {
+			return true;
+		}
+		const path = (track.url || '').split('?')[0].toLowerCase();
+		return path.endsWith('.ass') || path.endsWith('.ssa');
+	}
+
+	async function swapAssToPipVtt(activeTrack) {
+		if (!trackLooksLikeAssSource(activeTrack)) {
+			return false;
+		}
+		let assText;
+		try {
+			const resp = await fetch(activeTrack.url, { credentials: 'same-origin' });
+			if (!resp.ok) {
+				console.info('[FRZW-HLS] PiP ASS fetch failed:', resp.status);
+				return false;
+			}
+			assText = await resp.text();
+		} catch (err) {
+			console.info('[FRZW-HLS] PiP ASS fetch error', err);
+			return false;
+		}
+		const vttText = assToVtt(assText);
+		if (!vttText.includes('-->')) {
+			console.info('[FRZW-HLS] PiP: no Dialogue cues parsed from ASS (format or encoding).');
+			return false;
+		}
+		destroyJassub();
+		if (window.hls) {
+			window.hls.subtitleTrack = -1;
+		}
+		const blobUrl = URL.createObjectURL(new Blob([vttText], { type: 'text/vtt' }));
+		const attached = await attachPipConvertedAssTrack(activeTrack, blobUrl);
+		if (attached) {
+			pipUsedAssVttConversion = true;
+		} else {
+			URL.revokeObjectURL(blobUrl);
+		}
+		return attached;
+	}
+
+	function reinforceNativeCaptionsForPip(value, hls, external) {
+		if (!value || value === 'off') {
+			return;
+		}
+		if (value.startsWith('hls:')) {
+			const idx = parseInt(value.slice(4), 10);
+			if (hls && !Number.isNaN(idx)) {
+				hls.subtitleTrack = idx;
+			}
+			armNativeCaptionsForPipSelection(value, hls, external);
+			return;
+		}
+		if (value.startsWith('ext:')) {
+			const idx = parseInt(value.slice(4), 10);
+			const track = external[idx];
+			if (track && isPlyrCaptionTrack(track)) {
+				if (!showPlyrCaptionTrack(track)) {
+					applyExternalSubtitle(track);
+				} else {
+					setPlyrCaptionsEnabled(true);
+				}
+			}
+			armNativeCaptionsForPipSelection(value, hls, external);
+		}
+	}
+
+	function bindPipPlayerHooks() {
+		if (!player?.elements?.container) {
+			return;
+		}
+		const root = player.elements.container;
+		if (root.dataset.frzwPipHooks === '1') {
+			return;
+		}
+		root.dataset.frzwPipHooks = '1';
+		player.on('enterpip', () => {
+			void preparePictureInPictureCaptions();
+		});
+		root.addEventListener(
+			'pointerdown',
+			(event) => {
+				if (!event.target.closest('[data-plyr="pip"]')) {
+					return;
+				}
+				void preparePictureInPictureCaptions();
+			},
+			true
+		);
+	}
+
+	async function preparePictureInPictureCaptions() {
+		if (!playbackMeta) {
+			return;
+		}
+		const external = externalTracksForUi(playbackMeta);
+		const hls = window.hls || null;
+		const select = trackControls?.querySelector('[aria-label="Captions"]');
+		const currentValue =
+			(select && select.value) || captionAppliedValue || (select ? 'off' : null);
+		if (!currentValue || currentValue === 'off') {
+			return;
+		}
+		const active = activeCaptionTrackFromValue(currentValue, external, hls);
+		const needsSwap = Boolean(jassubInstance) || (active && !isPlyrCaptionTrack(active));
+		if (!needsSwap) {
+			reinforceNativeCaptionsForPip(currentValue, hls, external);
+			return;
+		}
+		const pipTrack = findPipCompatibleCaptionTrack(external, active);
+		if (pipTrack) {
+			const pipValue = externalValueForTrack(external, pipTrack);
+			if (!pipValue) {
+				return;
+			}
+			pipCaptionRestoreValue = currentValue;
+			captionAppliedValue = pipValue;
+			applyCaptionSelection(pipValue, hls, external);
+			syncCaptionSelectToValue(pipValue);
+			reinforceNativeCaptionsForPip(pipValue, hls, external);
+			return;
+		}
+		if (active && trackLooksLikeAssSource(active)) {
+			pipCaptionRestoreValue = currentValue;
+			const converted = await swapAssToPipVtt(active);
+			if (!converted) {
+				pipCaptionRestoreValue = null;
+				console.info(
+					'[FRZW-HLS] PiP: could not convert ASS to WebVTT; use an (CC) track or exit PiP for styled subs.'
+				);
+			}
+		}
+		scheduleArmNativeCaptionsForPip(captionAppliedValue || currentValue, hls, external);
+	}
+
+	function scheduleArmNativeCaptionsForPip(value, hls, external, attempt = 0) {
+		armNativeCaptionsForPipSelection(value, hls, external);
+		if (pipNativeOverrideTrack || !value || value === 'off' || attempt >= 8) {
+			return;
+		}
+		setTimeout(() => {
+			scheduleArmNativeCaptionsForPip(value, hls, external, attempt + 1);
+		}, 50);
+	}
+
+	async function handleEnterPictureInPicture() {
+		await preparePictureInPictureCaptions();
+	}
+
+	function handleLeavePictureInPicture() {
+		removePipConvertedTrack();
+		restorePlyrCaptionRenderingAfterPip();
+		if (!pipCaptionRestoreValue) {
+			return;
+		}
+		const restoreValue = pipCaptionRestoreValue;
+		pipCaptionRestoreValue = null;
+		if (!playbackMeta) {
+			return;
+		}
+		const external = externalTracksForUi(playbackMeta);
+		const hls = window.hls || null;
+		captionAppliedValue = restoreValue;
+		applyCaptionSelection(restoreValue, hls, external);
+		syncCaptionSelectToValue(restoreValue);
+	}
+
+	function bindPictureInPictureCaptions() {
+		if (!video || video.dataset.frzwPipCaptionsBound === '1') {
+			return;
+		}
+		if (typeof document.pictureInPictureEnabled === 'boolean' && !document.pictureInPictureEnabled) {
+			return;
+		}
+		video.dataset.frzwPipCaptionsBound = '1';
+		video.addEventListener('enterpictureinpicture', handleEnterPictureInPicture);
+		video.addEventListener('leavepictureinpicture', handleLeavePictureInPicture);
 	}
 
 	function applyCaptionSelection(value, hls, external) {
@@ -902,6 +1483,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 	
 	bindPlayerLoadingDismiss();
+	bindPictureInPictureCaptions();
 
 	loadPlaybackMeta().then((meta) => {
 		playbackMeta = meta;
@@ -919,6 +1501,28 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 
 		const streamProvider = document.querySelector('.video-container')?.dataset?.streamProvider;
+		const hlsNoRetry = {
+			maxNumRetry: 0,
+			retryDelayMs: 0,
+			maxRetryDelayMs: 0,
+			backoff: 'linear',
+		};
+		const hlsM3u8LoadPolicy = {
+			maxTimeToFirstByteMs: 60000,
+			maxLoadTimeMs: 60000,
+			timeoutRetry: {
+				maxNumRetry: 2,
+				retryDelayMs: 0,
+				maxRetryDelayMs: 0,
+				backoff: 'linear',
+			},
+			errorRetry: {
+				maxNumRetry: 1,
+				retryDelayMs: 1000,
+				maxRetryDelayMs: 8000,
+				backoff: 'linear',
+			},
+		};
 		const hlsOptions = {
 			maxBufferLength: 30,
 			maxMaxBufferLength: 60,
@@ -927,6 +1531,24 @@ document.addEventListener('DOMContentLoaded', () => {
 			testBandwidth: false,
 			enableWebVTT: true,
 			renderTextTracksNatively: true,
+			manifestLoadPolicy: { default: { ...hlsM3u8LoadPolicy } },
+			playlistLoadPolicy: { default: { ...hlsM3u8LoadPolicy } },
+			fragLoadPolicy: {
+				default: {
+					maxTimeToFirstByteMs: 60000,
+					maxLoadTimeMs: 120000,
+					timeoutRetry: hlsNoRetry,
+					errorRetry: hlsNoRetry,
+				},
+			},
+			keyLoadPolicy: {
+				default: {
+					maxTimeToFirstByteMs: 60000,
+					maxLoadTimeMs: 60000,
+					timeoutRetry: hlsNoRetry,
+					errorRetry: hlsNoRetry,
+				},
+			},
 		};
 		if (streamProvider === 'src2' && globalThis.FrzwSrc2Decoder) {
 			Object.assign(hlsOptions, globalThis.FrzwSrc2Decoder.createHlsConfig(Hls));
