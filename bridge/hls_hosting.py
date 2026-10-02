@@ -48,6 +48,7 @@ def open_upstream_segment_stream(url: str, strict_mode=False):
             headers=headers,
             stream=True,
             timeout=UPSTREAM_TIMEOUT_SEC,
+            force_refresh=True,
         )
         resp.raise_for_status()
         return resp

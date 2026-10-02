@@ -12,12 +12,13 @@ hls.js (bundled in static/js/hls/)
   License: Apache License 2.0
   https://github.com/video-dev/hls.js
 
-JASSUB (bundled in static/js/jassub/)
+JASSUB (bundled in static/js/jassub/ — jassub.umd.js, jassub-worker.js, wasm)
   Copyright (c) JASSUB contributors
-  License: MIT License
+  License: LGPL-2.1-or-later AND (FTL OR GPL-2.0-or-later) AND MIT (see upstream)
   https://github.com/ThaUnknown/jassub
-  Note: JASSUB uses libass (GPLv2+) via WebAssembly; libass is not vendored
-  as separate source in this repository.
+  Note: JASSUB uses libass (GPLv2+) via WebAssembly. Experimental 2.x esbuild
+  bundles may be kept under static/js/jassub/ for future upgrades; see
+  static/js/jassub/README.md and tools/jassub-vendor.
 
 m3u8 (Python dependency via requirements.txt)
   Copyright (c) Globo.com

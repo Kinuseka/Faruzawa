@@ -87,3 +87,12 @@ essentials/
 # Assistive tools (For design and rapid development)
 .impeccable/
 .cursor/
+
+# ASS subtitle font binaries (manifest + README tracked under static/fonts/ass/)
+static/fonts/ass/**/*.woff2
+static/fonts/ass/**/*.ttf
+static/fonts/ass/**/*.otf
+
+# Local JASSUB vendoring workspace (see static/js/jassub/README.md)
+tools/jassub-vendor/
+tools/font-fetch/

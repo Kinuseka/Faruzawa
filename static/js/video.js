@@ -29,29 +29,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	const JASSUB_ASSETS = '/static/js/jassub';
 	const JASSUB_FALLBACK_WOFF2 = `${JASSUB_ASSETS}/default.woff2`;
+	const ASS_FONT_MANIFEST_URL = '/static/fonts/ass/manifest.json';
 
-	function jassubFontConfig() {
-		// One bundled Liberation Sans file; map common ASS Fontname values to it.
-		const url = JASSUB_FALLBACK_WOFF2;
-		const names = [
+	let assFontManifestPromise = null;
+
+	function loadAssFontManifest() {
+		if (!assFontManifestPromise) {
+			assFontManifestPromise = fetch(ASS_FONT_MANIFEST_URL)
+				.then((response) => (response.ok ? response.json() : {}))
+				.catch((err) => {
+					console.warn('[FRZW-HLS] ASS font manifest unavailable', err);
+					return {};
+				});
+		}
+		return assFontManifestPromise;
+	}
+
+	async function jassubFontConfig() {
+		const manifest = await loadAssFontManifest();
+		const availableFonts = { ...manifest };
+		const fallbackUrl = JASSUB_FALLBACK_WOFF2;
+		for (const name of [
 			'liberation sans',
 			'arial',
 			'trebuchet ms',
 			'comic sans ms',
-			'ubuntu',
-			'roboto',
 			'verdana',
+			'times new roman',
+			'georgia',
+			'impact',
 			'tahoma',
-			'Segoe UI',
-		];
-		const availableFonts = {};
-		names.forEach((name) => {
-			availableFonts[name.toLowerCase()] = url;
-		});
+		]) {
+			availableFonts[name] = fallbackUrl;
+		}
+		availableFonts['liberation sans'] = fallbackUrl;
 		return {
 			availableFonts,
 			fallbackFont: 'liberation sans',
-			// Avoid Local Font Access mismatches; ASS styles use the map above.
 			useLocalFonts: false,
 		};
 	}
@@ -112,13 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	function bindPlayerLoadingDismiss() {
-		video.addEventListener(
-			'canplay',
-			() => {
-				hidePlayerLoading();
-			},
-			{ once: true }
-		);
+		const dismiss = () => hidePlayerLoading();
+		if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+			dismiss();
+		}
+		video.addEventListener('canplay', dismiss, { once: true });
+		video.addEventListener('playing', dismiss, { once: true });
 	}
 
 	function showTerminalError(message) {
@@ -672,7 +685,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		return webTracks.length;
 	}
 
-	function applyExternalSubtitle(track) {
+	async function applyExternalSubtitle(track) {
 		destroyJassub();
 		if (window.hls) {
 			window.hls.subtitleTrack = -1;
@@ -692,12 +705,13 @@ document.addEventListener('DOMContentLoaded', () => {
 			hideAllTextTracks();
 			setPlyrCaptionsEnabled(false);
 			setAssRendering(true);
-			jassubInstance = new JASSUB({
+			const fontConfig = await jassubFontConfig();
+			jassubInstance = new globalThis.JASSUB({
 				video,
 				subUrl: track.url,
 				workerUrl: `${JASSUB_ASSETS}/jassub-worker.js`,
 				wasmUrl: `${JASSUB_ASSETS}/jassub-worker.wasm`,
-				...jassubFontConfig(),
+				...fontConfig,
 			});
 			jassubInstance.addEventListener('ready', scheduleJassubResize);
 			jassubInstance.addEventListener('error', (event) => {
@@ -1114,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			const track = external[idx];
 			if (track && isPlyrCaptionTrack(track)) {
 				if (!showPlyrCaptionTrack(track)) {
-					applyExternalSubtitle(track);
+					void applyExternalSubtitle(track);
 				} else {
 					setPlyrCaptionsEnabled(true);
 				}
@@ -1266,7 +1280,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				if (hls) {
 					hls.subtitleTrack = -1;
 				}
-				applyExternalSubtitle(track);
+				void applyExternalSubtitle(track);
 			}
 		}
 	}

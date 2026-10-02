@@ -193,7 +193,7 @@
     z-index: 6;
 }
 
-/* JASSUB inserts .JASSUB as a sibling of <video> inside Plyr's wrapper */
+/* JASSUB 1.x: wrapper div fills the video area; inner canvas is positioned by JS. */
 .video-container .plyr__video-wrapper .JASSUB {
     position: absolute;
     inset: 0;
