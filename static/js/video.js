@@ -45,9 +45,24 @@ document.addEventListener('DOMContentLoaded', () => {
 		return assFontManifestPromise;
 	}
 
+	function assFontMapKey(name) {
+		let key = String(name || '').trim().toLowerCase();
+		if (key.startsWith('@')) {
+			key = key.slice(1);
+		}
+		return key;
+	}
+
 	async function jassubFontConfig() {
 		const manifest = await loadAssFontManifest();
-		const availableFonts = { ...manifest };
+		/** JASSUB 1.x worker keys are lowercase only (see findAvailableFonts in jassub-worker.js). */
+		const availableFonts = {};
+		for (const [name, url] of Object.entries(manifest)) {
+			const key = assFontMapKey(name);
+			if (key && url) {
+				availableFonts[key] = url;
+			}
+		}
 		const fallbackUrl = JASSUB_FALLBACK_WOFF2;
 		for (const name of [
 			'liberation sans',
@@ -60,9 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
 			'impact',
 			'tahoma',
 		]) {
-			availableFonts[name] = fallbackUrl;
+			if (!availableFonts[name]) {
+				availableFonts[name] = fallbackUrl;
+			}
 		}
-		availableFonts['liberation sans'] = fallbackUrl;
 		return {
 			availableFonts,
 			fallbackFont: 'liberation sans',
